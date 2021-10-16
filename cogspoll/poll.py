@@ -4,6 +4,7 @@ import traceback
 import json
 import gspread
 import discord
+from typing import Union, Tuple, List
 
 from contextlib import redirect_stdout
 from utils import checks, config
@@ -18,26 +19,12 @@ class POLL(commands.Cog):
 
   @commands.command(aliases=['vote'])
   @checks.role_or_permissions('DM')
-  async def poll(self, ctx: commands.Context, title: str, desc: str, url: str=None, notes: str=None, image: str=None):
+  async def poll(self, ctx: commands.Context, name: str, desc: str, url: str=None, notes: str=None):
     """Generates an embed with a given title and description, and tallies positive and negative reactions, allowing easy voting.
     
     Also creates a thread and silently adds the entire DM team to it."""
-    embed = discord.Embed(title       = title, 
-                          description = desc,
-                          url         = url or "")
-    if notes:
-      embed.add_field(name='Notes', value=notes, inline=False
-        )
-    embed.add_field(name='Yes - ✅', value="0", inline=True)
-    embed.add_field(name='No - ❎',  value="0", inline=True)
-    message = await ctx.send(embed=embed)
-    await message.add_reaction("❓")
-    await message.add_reaction("✅")
-    await message.add_reaction("❎")
-    # thread  = await ctx.channel.create_thread(name=title, message=message)
-    # thread_message = await thread.send('Time to vote!')
-    # await thread_message.edit('Time to Vote, <@&692769572675125310>!')
-    # await thread_message.pin()
+
+    await self.generate_poll(ctx, name, desc, url, notes)
 
   @commands.command(aliases=['json_poll'])
   @checks.is_owner()
@@ -58,33 +45,12 @@ class POLL(commands.Cog):
         url   = item['url'] or ""
         notes = item.get('notes', '')
 
-        embed = discord.Embed(title       = name, 
-                              description = desc,
-                              url         = url)
-        
-        if notes:
-          embed.add_field(name='Notes', value=notes, inline=False
-            )
-        embed.add_field(name='Yes - ✅', value="0", inline=True)
-        embed.add_field(name='No - ❎',  value="0", inline=True)
+        await self.generate_poll(ctx, name, desc, url, notes)
 
-        message = await ctx.send(embed=embed)
-
-        await message.add_reaction("❓")
-        await message.add_reaction("✅")
-        await message.add_reaction("❎")
-
-        #thread  = await ctx.channel.create_thread(name=name, message=message)
-        #thread_message = await thread.send('Time to vote!')
-        #await thread_message.edit('Time to Vote, <@&692769572675125310>!')
-        #await thread_message.pin()
-
-  # @staticmethod
   @commands.Cog.listener()
   async def on_raw_reaction_add(self, event):
     await self.poll_voting(event)
 
-  # @staticmethod
   @commands.Cog.listener()
   async def on_raw_reaction_remove(self, event):
     await self.poll_voting(event)
@@ -117,11 +83,11 @@ class POLL(commands.Cog):
       if event.event_type == "REACTION_ADD":
         if str(emoji) == "✅":
           # Remove the opposing reaction if existing
-          if user_id in neg_reactions_user and event.channel_id != 889751624967393300:
+          if user_id in neg_reactions_user:
             await message.remove_reaction("❎", user)
         if str(emoji) == "❎":
           # Remove the opposing reaction if existing
-          if user_id in pos_reactions_user and event.channel_id != 889751624967393300:
+          if user_id in pos_reactions_user:
             await message.remove_reaction("✅", user)
         if str(emoji) == "❓":
           # Tell me who in the DM role didn't vote yet
@@ -143,6 +109,33 @@ class POLL(commands.Cog):
 
       await message.edit(embed=discord.Embed().from_dict(embedDict))
 
+  async def generate_poll(self, ctx: commands.Context, name:str, desc:str, url:str = None, notes:str = None, reactions: List[Tuple[str, str]] = None):
+
+    if not url:
+      url = ""
+    if not reactions:
+      reactions = [('Yes', "✅"), ('No', "❎")]
+
+    embed = discord.Embed(title       = name, 
+                          description = desc,
+                          url         = url)
+
+    if notes:
+      embed.add_field(name='Notes', value=notes, inline=False)
+
+    for r_desc, r_emote in reactions:
+      embed.add_field(name=f'{r_desc} - {r_emote}', value="0", inline=True)
+
+    message = await ctx.send(embed=embed)
+
+    await message.add_reaction("❓")
+    for _, reaction in reactions:
+      await message.add_reaction(reaction)
+
+    # thread  = await ctx.channel.create_thread(name=name, message=message)
+    # thread_message = await thread.send('Time to vote!')
+    # await thread_message.edit('Time to Vote, <@&692769572675125310>!')
+    # await thread_message.pin()
 
 def setup(bot):
     bot.add_cog(POLL(bot))
