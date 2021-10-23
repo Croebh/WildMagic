@@ -23,7 +23,7 @@ from discord.ext.commands import CheckFailure, CommandInvokeError, CommandNotFou
 from discord.ext.commands import guild_only, NoPrivateMessage, has_role, has_any_role, MissingRole, UserNotFound
 from discord.ext.commands import MissingAnyRole
 
-COGS =  ('cogsmisc.repl', 'cogschar.char', 'cogspoll.poll')
+COGS =  ('cogsmisc.repl', 'cogschar.char', 'cogspoll.poll', 'w4rcogs.reactrole')
 
 PREFIX = "!!"
 NEWLINE = "\n"
