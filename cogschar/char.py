@@ -7,7 +7,7 @@ import discord
 
 from contextlib import redirect_stdout
 from utils import checks, config
-from utils.utils import avraeREST, feet_and_inches, Dropdown, DropdownView
+from utils.utils import avraeREST, feet_and_inches, Dropdown, DropdownView, confirm
 from utils.argparser import argparse
 
 from discord.ext import commands
@@ -23,23 +23,13 @@ class CHAR(commands.Cog):
   def __init__(self, bot):
     self.bot = bot
       
-  @commands.command(aliases=['gvar_update', 'gvar'])
+  @commands.command(aliases=['gvar_update', 'update_gvar'])
   @checks.role_or_permissions('DM')
-  async def update_gvar(self, ctx, *args):
-    all_characters = sh.sheet1.get_all_records()
-    out = [{"player": char['Player'],
-            "name": char['Character Name'],
-            "sheet": char['URL'],
-            "gender": char['Gender']
-           } for char in all_characters]
-
-    get, getStatus = avraeREST("GET", "customizations/gvars/5e8f9f82-616b-4828-b201-f0f9ea9368af")
-    newPayload = get.json()
-    newPayload.update({"value":json.dumps(out)})
-    post, postStatus = avraeREST("POST", "customizations/gvars/5e8f9f82-616b-4828-b201-f0f9ea9368af", json.dumps(newPayload))
+  async def gvar(self, ctx, *args):
+    post, postStatus = self.update_gvar()
 
     if postStatus in (200, 201):
-      await ctx.send('Gvar Updated')
+      await ctx.send('Gvar Updated', delete_after=10)
 
   @commands.command(aliases=['char', 'lookup_char'])
   async def char_lookup(self, ctx, name:str):
@@ -160,6 +150,11 @@ class CHAR(commands.Cog):
       embed.add_field(name = 'Levels', value=f"""Level: {character['Level'] or 'Not Set'}\n{NEWLINE.join(classes)}""")
       embed.add_field(name = 'Details', value=f"""Height: {feet_and_inches(character.get('Height (Decimal Ft)'))  or 'Not Set'}\nGender: {character.get('Gender')  or 'Not Set'}""")
       await ctx.send(embed=embed)
+      sh.sheet1.sort((1, 'asc'))
+      post, postStatus = self.update_gvar()
+
+      if postStatus in (200, 201):
+        await ctx.send('Gvar Updated', delete_after=10)
 
   @commands.command(aliases=['char_edit', 'edit'])
   @checks.role_or_permissions('DM')
@@ -244,6 +239,61 @@ class CHAR(commands.Cog):
       embed.add_field(name = 'Levels', value=f"""Level: {character['Level'] or 'Not Set'}\n{NEWLINE.join(classes)}""")
       embed.add_field(name = 'Details', value=f"""Height: {feet_and_inches(character.get('Height (Decimal Ft)'))  or 'Not Set'}\nGender: {character.get('Gender')  or 'Not Set'}""")
       await ctx.send(embed=embed)
+      post, postStatus = self.update_gvar()
+
+      if postStatus in (200, 201):
+        await ctx.send('Gvar Updated', delete_after=10)
+
+  @commands.command()
+  @checks.role_or_permissions('DM')
+  async def delete_char(self, ctx, name):
+    """Deletes a character from the spreadsheet"""
+    all_characters = sh.sheet1.get_all_records()
+    possible = []
+    for i, character in enumerate(all_characters, 1):
+      if character['Character Name'].lower() == name.lower():
+        possible = [(i, character)]
+        break
+      if name.lower() in character['Character Name'].lower():
+        possible.append((i, character))
+    else:
+      if not possible:
+        await ctx.send(f"Error: Unable to find a character named: `{name}`")
+        return
+    row, character = possible[0]
+    embed = discord.Embed(title       = f"{character['Character Name']} ({character['Player']})",
+                          url         = character['URL'])
+    embed.add_field(name = 'Race', value=character['Race'] or 'Not Set')
+    classes = [f"""{x}: {character[x]} {f"({character['Sub'+x.lower()]})" if character.get('Sub'+x.lower()) else ''}""" for x in ['Class 1', 'Class 2', 'Class 3', 'Class 4'] if character.get(x)]
+    embed.add_field(name = 'Levels', value=f"""Level: {character['Level'] or 'Not Set'}\n{NEWLINE.join(classes)}""")
+    embed.add_field(name = 'Details', value=f"""Height: {feet_and_inches(character.get('Height (Decimal Ft)'))  or 'Not Set'}\nGender: {character.get('Gender')  or 'Not Set'}""")
+    await ctx.send(embed=embed)
+    delete = await confirm(ctx, "Is this the character you want to delete? (Yes or No)")
+    if delete:
+      sh.sheet1.delete_row(row+1)
+      sh.sheet1.sort((1, 'asc'))
+      await ctx.send(f"{character['Character Name']} has been removed from the spreadsheet.")
+      post, postStatus = self.update_gvar()
+
+      if postStatus in (200, 201):
+        await ctx.send('Gvar Updated', delete_after=10)
+    else:
+      await ctx.send('Cancelling...')
+
+  def update_gvar(self):
+    all_characters = sh.sheet1.get_all_records()
+    out = [{"player": char['Player'],
+            "name": char['Character Name'],
+            "sheet": char['URL'],
+            "gender": char['Gender']
+           } for char in all_characters]
+
+    get, getStatus = avraeREST("GET", "customizations/gvars/5e8f9f82-616b-4828-b201-f0f9ea9368af")
+    newPayload = get.json()
+    newPayload.update({"value":json.dumps(out)})
+    post, postStatus = avraeREST("POST", "customizations/gvars/5e8f9f82-616b-4828-b201-f0f9ea9368af", json.dumps(newPayload))
+
+    return post, postStatus
 
 def setup(bot):
     bot.add_cog(CHAR(bot))

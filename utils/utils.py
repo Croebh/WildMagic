@@ -27,17 +27,8 @@ def avraeREST(type: str, endpoint: str, payload: str = None):
   headers['Authorization'] = token
   url = '/'.join(["https://api.avrae.io", endpoint]).strip('/')
 
-  try:
-    request = requests.request(type.upper(), url , headers=headers, data = payload)
-    requestStatus = request.status_code
-  except:
-    if requestStatus==403:
-      print("Unsuccessfully {}: {} - Double check your token".format(type.upper(), endpoint), requestStatus)
-    if requestStatus==404:
-      print("Unsuccessfully {}: {} - Invalid endpoint".format(type.upper(), endpoint), requestStatus)
-
-  if requestStatus in (200, 201):
-    print("Successfully {}: {}".format(type.upper(), endpoint), requestStatus)
+  request = requests.request(type.upper(), url , headers=headers, data = payload)
+  requestStatus = request.status_code
 
   return request, requestStatus
 
@@ -63,3 +54,49 @@ class DropdownView(discord.ui.View):
 
         # Adds the dropdown to our view object.
         self.add_item(Dropdown(options=options))
+
+def get_positivity(string):
+    if isinstance(string, bool):  # oi!
+        return string
+    lowered = string.lower()
+    if lowered in ('yes', 'y', 'true', 't', '1', 'enable', 'on'):
+        return True
+    elif lowered in ('no', 'n', 'false', 'f', '0', 'disable', 'off'):
+        return False
+    else:
+        return None
+
+async def confirm(ctx, message, delete_msgs=False, response_check=get_positivity):
+    """
+    Confirms whether a user wants to take an action.
+
+    :rtype: bool|None
+    :param ctx: The current Context.
+    :param message: The message for the user to confirm.
+    :param delete_msgs: Whether to delete the messages.
+    :param response_check: A function (str) -> bool that returns whether a given reply is a valid response.
+    :type response_check: (str) -> bool
+    :return: Whether the user confirmed or not. None if no reply was recieved
+    """
+    msg = await ctx.channel.send(message)
+    try:
+        reply = await ctx.bot.wait_for('message', timeout=30, check=auth_and_chan(ctx))
+    except asyncio.TimeoutError:
+        return None
+    reply_bool = response_check(reply.content) if reply is not None else None
+    if delete_msgs:
+        try:
+            await msg.delete()
+            await reply.delete()
+        except:
+            pass
+    return reply_bool
+
+def auth_and_chan(ctx):
+    """Message check: same author and channel"""
+
+    def chk(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
+
+    return chk
+

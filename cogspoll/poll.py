@@ -47,14 +47,8 @@ class POLL(commands.Cog):
 
         await self.generate_poll(ctx, name, desc, url, notes)
 
-  @commands.Cog.listener()
-  async def on_raw_reaction_add(self, event):
-    await self.poll_voting(event)
-
-  @commands.Cog.listener()
-  async def on_raw_reaction_remove(self, event):
-    await self.poll_voting(event)
-
+  @commands.Cog.listener("on_raw_reaction_remove")
+  @commands.Cog.listener("on_raw_reaction_add")
   async def poll_voting(self, event):
     server    = self.bot.get_guild(event.guild_id)
     msg_id    = event.message_id
@@ -132,10 +126,10 @@ class POLL(commands.Cog):
     for _, reaction in reactions:
       await message.add_reaction(reaction)
 
-    # thread  = await ctx.channel.create_thread(name=name, message=message)
-    # thread_message = await thread.send('Time to vote!')
-    # await thread_message.edit('Time to Vote, <@&692769572675125310>!')
-    # await thread_message.pin()
+    thread  = await ctx.channel.create_thread(name=name, message=message)
+    thread_message = await thread.send('Time to vote!')
+    await thread_message.edit(content='Time to Vote, <@&692769572675125310>!')
+    await thread_message.pin()
 
 def setup(bot):
     bot.add_cog(POLL(bot))
