@@ -1,10 +1,11 @@
 import collections
 import re
 
-from discord.ext.commands import BadArgument, ExpectedClosingQuoteError
-from discord.ext.commands.view import StringView
+from disnake.ext.commands import BadArgument, ExpectedClosingQuoteError
+from disnake.ext.commands.view import StringView
 
 from cogsmisc.errors import InvalidArgument
+
 
 def list_get(index, default, l):
     try:
@@ -12,6 +13,7 @@ def list_get(index, default, l):
     except IndexError:
         a = default
     return a
+
 
 EPHEMERAL_ARG_RE = re.compile(r'([^\s]+)(\d+)')
 QUOTE_PAIRS = {
@@ -46,7 +48,7 @@ def argsplit(args: str):
     return args
 
 
-def argparse(args, character=None, splitter=argsplit):
+def argparse(args, splitter=argsplit):
     """
     Parses arguments.
     :param args: A list of arguments to parse.
@@ -56,10 +58,6 @@ def argparse(args, character=None, splitter=argsplit):
     """
     if isinstance(args, str):
         args = splitter(args)
-    if character:
-        from aliasing.evaluators import MathEvaluator
-        evaluator = MathEvaluator.with_character(character)
-        args = [evaluator.transformed_str(a) for a in args]
 
     parsed = collections.defaultdict(lambda: [])
     index = 0
@@ -82,12 +80,9 @@ def argquote(arg: str):
 class ParsedArguments:
     def __init__(self, parsed):
         self._parsed = parsed
-        self._ephemeral = collections.defaultdict(lambda: [])
-        self._parse_ephemeral(parsed)
 
         # contextual support
         self._original_parsed = collections.defaultdict(lambda: [])
-        self._original_ephemeral = collections.defaultdict(lambda: [])
         self._setup_originals()
         self._contexts = collections.defaultdict(lambda: ParsedArguments.empty_args())
 
@@ -103,19 +98,18 @@ class ParsedArguments:
         return cls(collections.defaultdict(lambda: []))
 
     # basic argument getting
-    def get(self, arg, default=None, type_=str, ephem=False):
+    def get(self, arg, default=None, type_=str):
         """
         Gets a list of all values of an argument.
         :param str arg: The name of the arg to get.
         :param default: The default value to return if the arg is not found. Not cast to type.
         :param type_: The type that each value in the list should be returned as.
-        :param bool ephem: Whether to add applicable ephemeral arguments to the returned list.
         :return: The relevant argument list.
         :rtype: list
         """
         if default is None:
             default = []
-        parsed = self._get_values(arg, ephem=ephem)
+        parsed = self._get_values(arg)
         if not parsed:
             return default
         try:
@@ -123,17 +117,16 @@ class ParsedArguments:
         except (ValueError, TypeError):
             raise InvalidArgument(f"One or more arguments cannot be cast to {type_.__name__} (in `{arg}`)")
 
-    def last(self, arg, default=None, type_: type = str, ephem=False):
+    def last(self, arg, default=None, type_: type = str):
         """
         Gets the last value of an arg.
         :param str arg: The name of the arg to get.
         :param default: The default value to return if the arg is not found. Not cast to type.
         :param type_: The type that the arg should be returned as.
-        :param ephem: Whether to return an ephemeral argument if such exists.
         :raises: InvalidArgument if the arg cannot be cast to the type
         :return: The relevant argument.
         """
-        last_arg = self._get_last(arg, ephem=ephem)
+        last_arg = self._get_last(arg)
         if last_arg is None:
             return default
         try:
@@ -141,52 +134,15 @@ class ParsedArguments:
         except (ValueError, TypeError):
             raise InvalidArgument(f"{last_arg} cannot be cast to {type_.__name__} (in `{arg}`)")
 
-    def adv(self, ea=False, boolwise=False, ephem=False, custom: dict = None):
-        """
-        Determines whether to roll with advantage, disadvantage, Elven Accuracy, or no special effect.
-        :param ea: Whether to parse for elven accuracy.
-        :param boolwise: Whether to return an integer or tribool representation.
-        :param ephem: Whether to return an ephemeral argument if such exists.
-        :param custom: Dictionary of custom values to parse for. There should be a key for each value you want to overwrite. ``custom={'adv': 'custom_adv'}`` would allow you to parse for advantage if the ``custom_adv`` argument is found.
-        :return: -1 for dis, 0 for normal, 1 for adv, 2 for ea
-        """
-        adv_str, dis_str, ea_str = 'adv', 'dis', 'ea'
-        if custom is not None:
-            if 'adv' in custom:
-                adv_str = custom['adv']
-            if 'dis' in custom:
-                dis_str = custom['dis']
-            if 'ea' in custom:
-                ea_str = custom['ea']
-
-        adv_arg = self.last(adv_str, default=False, type_=bool, ephem=ephem)
-        dis_arg = self.last(dis_str, default=False, type_=bool, ephem=ephem)
-        ea_arg = ea and self.last(ea_str, default=False, type_=bool, ephem=ephem)
-
-        if ea_arg and not dis_arg:
-            out = 2
-        elif dis_arg and not (adv_arg or ea_arg):
-            out = -1
-        elif adv_arg and not dis_arg:
-            out = 1
-        else:
-            out = 0
-
-        if not boolwise:
-            return out
-        else:
-            return {-1: False, 0: None, 1: True}.get(out)
-
-    def join(self, arg, connector: str, default=None, ephem=False):
+    def join(self, arg, connector: str, default=None):
         """
         Returns a str formed from all of one arg, joined by a connector.
         :param arg: The arg to join.
         :param connector: What to join the arg by.
         :param default: What to return if the arg does not exist.
-        :param ephem: Whether to return an ephemeral argument if such exists.
         :return: The joined str, or default.
         """
-        return connector.join(self.get(arg, ephem=ephem)) or default
+        return connector.join(self.get(arg)) or default
 
     def ignore(self, arg):
         """
@@ -217,35 +173,14 @@ class ParsedArguments:
             if k not in self and v is not None:
                 self[k] = v
 
-    # ephemeral setup
-    def _parse_ephemeral(self, argdict):
-        for key in argdict:
-            match = EPHEMERAL_ARG_RE.match(key)
-            if match:
-                arg, num = match.group(1), match.group(2)
-                self._ephemeral[arg].extend([EphemeralValue(int(num), val) for val in argdict[key]])
-
     # get helpers
-    def _get_values(self, arg, ephem=False):
+    def _get_values(self, arg):
         """Returns a list of arguments."""
-        if not ephem:
-            return self._parsed[arg]
+        return self._parsed[arg]
 
-        out = self._parsed[arg].copy()
-        for ephem_val in self._ephemeral[arg]:
-            if ephem_val.remaining:
-                out.append(ephem_val.value)
-
-        return out
-
-    def _get_last(self, arg, ephem=False):
+    def _get_last(self, arg):
         """Returns the last argument."""
-        if ephem:
-            if arg in self._ephemeral:
-                for ev in reversed(self._ephemeral[arg]):
-                    if ev.remaining:
-                        return ev.value
-        if arg in self._parsed and self._parsed[arg]:  # intentionally not elif - handles when ephem exhausted
+        if arg in self._parsed and self._parsed[arg]:
             return self._parsed[arg][-1]
         return None
 
@@ -254,9 +189,6 @@ class ParsedArguments:
         for arg, values in self._parsed.items():
             self._original_parsed[arg] = values.copy()
 
-        for arg, values in self._ephemeral.items():
-            self._original_ephemeral[arg] = values.copy()
-
     def set_context(self, context):
         """
         Sets the current argument parsing context.
@@ -264,7 +196,6 @@ class ParsedArguments:
         """
         if context is None:
             self._parsed = self._original_parsed
-            self._ephemeral = self._original_ephemeral
         else:
             # build a new parsed and ephemeral list
             new_parsed = collections.defaultdict(lambda: [])
@@ -274,18 +205,7 @@ class ParsedArguments:
             for arg, values in self._contexts[context]._parsed.items():
                 new_parsed[arg].extend(values)
 
-            new_ephem = collections.defaultdict(lambda: [])
-            for arg, values in self._original_ephemeral.items():
-                # new_ephem[arg] and original_ephemeral[arg] don't point to the same list
-                # but new_ephem[arg][i] and original_ephemeral[arg][i] point to the same value
-                # so that changes to the ephemeral state in a context bubble up to the global context
-                new_ephem[arg] = values.copy()
-
-            for arg, values in self._contexts[context]._ephemeral.items():
-                new_ephem[arg].extend(values.copy())
-
             self._parsed = new_parsed
-            self._ephemeral = new_ephem
 
     def add_context(self, context, args):
         """
@@ -298,7 +218,7 @@ class ParsedArguments:
 
     # builtins
     def __contains__(self, item):
-        return (item in self._parsed and self._parsed[item]) or item in self._ephemeral
+        return item in self._parsed and self._parsed[item]
 
     def __len__(self):
         return len(self._parsed)
@@ -312,20 +232,13 @@ class ParsedArguments:
             value = [value]
         self._parsed[key] = value
         self._original_parsed[key] = value.copy()
-        # add it to ephem dict if it matches
-        match = EPHEMERAL_ARG_RE.match(key)
-        if match:
-            arg, num = match.group(1), match.group(2)
-            evals = [EphemeralValue(int(num), val) for val in value]
-            self._ephemeral[arg].extend(evals)
-            self._original_ephemeral[arg].extend(evals.copy())
 
     def __delitem__(self, arg):
         """
         Removes any instances of an argument from the result in the current context (ephemeral included).
         :param arg: The argument to ignore.
         """
-        for container in (self._parsed, self._original_parsed, self._ephemeral, self._original_ephemeral):
+        for container in (self._parsed, self._original_parsed):
             if arg in container:
                 del container[arg]
 
@@ -333,19 +246,7 @@ class ParsedArguments:
         return iter(self._parsed.keys())
 
     def __repr__(self):
-        return f"<ParsedArguments parsed={self._parsed.items()} ephemeral={self._ephemeral.items()}>"
-
-
-class EphemeralValue:
-    def __init__(self, num, value):
-        self.num = num
-        self.remaining = num
-        self._value = value
-
-    @property
-    def value(self):
-        self.remaining -= 1
-        return self._value
+        return f"<ParsedArguments parsed={self._parsed.items()}>"
 
 
 class CustomStringView(StringView):

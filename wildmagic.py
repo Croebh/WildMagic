@@ -1,47 +1,25 @@
-from typing import List
 import os
 import sys
 import json
-import io
-from urllib.request import urlopen, Request
 import re
 import requests
 
-
 from utils import checks, config
-from utils.utils import feet_and_inches, avraeREST, Dropdown, DropdownView
 
-import textwrap
-import traceback
-from contextlib import redirect_stdout
-
-import discord
-from utils.argparser import argparse
-from discord.errors import Forbidden, HTTPException, InvalidArgument, NotFound
-from discord.ext import commands
-from discord.ext.commands.errors import CommandInvokeError
-from discord.ext.commands import (
-    CheckFailure,
+import disnake
+from disnake.ext import commands
+from disnake.ext.commands import (
     CommandInvokeError,
     CommandNotFound,
-    MemberNotFound,
 )
-from discord.ext.commands import (
-    guild_only,
-    NoPrivateMessage,
-    has_role,
-    has_any_role,
-    MissingRole,
-    UserNotFound,
-)
-from discord.ext.commands import MissingAnyRole
+from disnake.ext.commands import MissingAnyRole
 
-COGS = ()
+COGS = ('cogsmisc.repl',)
 
-PREFIX = "??d"
+PREFIX = "??"
 NEWLINE = "\n"
 
-intents = discord.Intents.all()
+intents = disnake.Intents.all()
 
 bot = commands.Bot(
     command_prefix=commands.when_mentioned_or(PREFIX),
@@ -81,7 +59,6 @@ async def restart(ctx):
 
 @bot.command()
 async def get_bags(ctx, url):
-
     regex = r"^.*characters\/(\d+)\/?"
     match = re.search(regex, url)
     if match:
@@ -96,17 +73,17 @@ async def get_bags(ctx, url):
         resp = requests.get(url)
         json_data = json.loads(resp.content)
         for item in json_data["data"]["inventory"]:
-            bagName = "Backpack"
+            bag_name = "Backpack"
             if item["definition"]["magic"]:
-                bagName = "Magical Items"
+                bag_name = "Magical Items"
             elif item["definition"]["canEquip"]:
-                bagName = "Equipment"
+                bag_name = "Equipment"
             elif item["definition"]["isConsumable"]:
-                bagName = "Consumables"
-            itemName = item["definition"]["name"]
+                bag_name = "Consumables"
+            item_name = item["definition"]["name"]
             quantity = item["quantity"]
-            out[bagName][itemName] = out[bagName].get(itemName, 0) + quantity
-        await ctx.send(f"""`!cvar bags {json.dumps(list(out.items()))}`""")
+            out[bag_name][item_name] = out[bag_name].get(item_name, 0) + quantity
+        await ctx.send(f"""```json\n!cvar bags {json.dumps(list(out.items()))}\n```""")
 
 
 for cog in COGS:

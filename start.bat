@@ -1,1 +1,1 @@
-python wildmagic.py
+py wildmagic.py

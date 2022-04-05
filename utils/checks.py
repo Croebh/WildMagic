@@ -1,5 +1,5 @@
-import discord.utils
-from discord.ext import commands
+import disnake.utils
+from disnake.ext import commands
 
 from utils import config
 
@@ -37,12 +37,12 @@ def _role_or_permissions(ctx, role_filter, **perms):
         return True
     ch = ctx.message.channel
     author = ctx.message.author
-    if isinstance(ch, discord.abc.PrivateChannel):
+    if isinstance(ch, disnake.abc.PrivateChannel):
         return False  # can't have roles in PMs
 
     
     try:
-        role = discord.utils.find(role_filter, author.roles)
+        role = disnake.utils.find(role_filter, author.roles)
     except:
         return False
     return role is not None
