@@ -1,4 +1,5 @@
 import asyncio
+import disnake
 
 
 def feet_and_inches(decimal_feet):
@@ -54,3 +55,10 @@ def auth_and_chan(ctx):
         return msg.author == ctx.author and msg.channel == ctx.channel
 
     return chk
+
+
+async def try_delete(message):
+    try:
+        await message.delete()
+    except disnake.HTTPException:
+        pass
