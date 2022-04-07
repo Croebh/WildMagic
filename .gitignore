@@ -130,3 +130,10 @@ dmypy.json
 .pyre/
 
 service_account.json
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/vcs.xml
+/.idea/WildMagic-bot.iml

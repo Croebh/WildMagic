@@ -15,7 +15,7 @@ from disnake.ext.commands import (
 )
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ('cogsmisc.repl',)
+COGS = ('cogsmisc.repl', 'cogsddb.charinfo')
 
 PREFIX = "??"
 NEWLINE = "\n"
@@ -43,6 +43,7 @@ class CustomHelp(commands.DefaultHelpCommand):
             params = [f"" for param in command.clean_params]
             entry = f'`{PREFIX}{name} {command.signature}` - {command.short_doc}'
             self.paginator.add_line(entry)
+
 
 bot = commands.Bot(
     command_prefix=commands.when_mentioned_or(PREFIX),
@@ -84,128 +85,6 @@ async def restart(ctx):
     await ctx.send("Restarting...")
     print("Restarting...")
     os.execv(sys.executable, ["python"] + sys.argv)
-
-
-@bot.command()
-async def get_bags(ctx, url):
-    """Generates a command to set up the `!bag` alias, given a provided DDB character sheet."""
-    await utils.try_delete(ctx.message)
-    regex = r"^.*characters\/(\d+)\/?"
-    match = re.search(regex, url)
-    if match:
-        out = {
-            "Backpack": {},
-            "Equipment": {},
-            "Magical Items": {},
-            "Consumables": {},
-            "Harvest": {},
-        }
-        url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
-        resp = requests.get(url)
-        json_data = json.loads(resp.content)['data']
-        for item in json_data["inventory"]:
-            bag_name = "Backpack"
-            if item["definition"]["magic"]:
-                bag_name = "Magical Items"
-            elif item["definition"]["canEquip"]:
-                bag_name = "Equipment"
-            elif item["definition"]["isConsumable"]:
-                bag_name = "Consumables"
-            item_name = item["definition"]["name"]
-            quantity = item["quantity"]
-            out[bag_name][item_name] = out[bag_name].get(item_name, 0) + quantity
-        await ctx.send(f"""```json\n!cvar bags {json.dumps(list(out.items()))}\n```""")
-    else:
-        await ctx.send("Unable to find a valid DDB character link.")
-
-
-@bot.command()
-async def get_desc(ctx, url):
-    """Generates a command to set up your characters description, given a provided DDB character sheet."""
-    await utils.try_delete(ctx.message)
-    regex = r"^.*characters\/(\d+)\/?"
-    match = re.search(regex, url)
-
-    alignments = ["LG", "NG", "CG",
-                  "LN", "TN", "CN",
-                  "LE", "NE", "CE"]
-
-    if match:
-        url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
-        resp = requests.get(url)
-        json_data = json.loads(resp.content)['data']
-        classes = []
-        for _class in json_data['classes']:
-            cur_class = _class['definition']['name']
-            if _class['subclassDefinition']:
-                cur_class += f" ({_class['subclassDefinition']['name']})"
-            classes.append(cur_class)
-        out = {
-            "height": json_data["height"] or "height",
-            "weight": f'{json_data["weight"]} lb.' or "weight",
-            "race": json_data['race']['fullName'] or "race",
-            "class": '/'.join(classes) or "class",
-            "appearance": json_data['traits']["appearance"] or "Write a bit about attitude, appearance, and background here.",
-            "traits": json_data['traits']["personalityTraits"] or "Enter your dndbeyond rolled trait(s) here\nEnter your dndbeyond rolled trait(s) here",
-            "ideals": json_data['traits']["ideals"] or "Enter your dndbeyond rolled ideal(s) here",
-            "bonds": json_data['traits']["bonds"] or "Enter your dndbeyond rolled bond(s) here",
-            "flaws": json_data['traits']["flaws"] or "Enter your dndbeyond rolled flaw(s) here",
-            "alignment": alignments[json_data['alignmentId']-1]if json_data['alignmentId'] else "Enter your alignment"
-        }
-        desc_out = f""""""
-        await ctx.send(f"""```md\n!desc update __**{out['height']} | {out['weight']} | {out['race']} | {out['class']}**__
-> {out["appearance"]}
-**Personality Traits**
-{out["traits"]}
-**Ideals**
-{out["ideals"]}
-**Bonds**
-{out["bonds"]}
-**Flaws**
-{out["flaws"]}
-**Alignment**
-{out["alignment"]}\n```""")
-    else:
-        await ctx.send("Unable to find a valid DDB character link.")
-
-
-@bot.command()
-async def get_tools(ctx, url):
-    """Generates a command to set up your tool proficiencies for `!tool`, given a provided DDB character sheet."""
-    await utils.try_delete(ctx.message)
-    regex = r"^.*characters\/(\d+)\/?"
-    match = re.search(regex, url)
-
-    if match:
-        url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
-        resp = requests.get(url)
-        json_data = json.loads(resp.content)['data']
-        profs = []
-        expertise = []
-        for _type in json_data['modifiers']:
-            for modifier in json_data['modifiers'][_type]:
-                if modifier['entityTypeId'] == 2103445194:
-                    if modifier['type'] == 'proficiency':
-                        profs.append(modifier['friendlySubtypeName'])
-                    if modifier['type'] == 'expertise':
-                        expertise.append(modifier['friendlySubtypeName'])
-        out = []
-        if profs:
-            out.append(f"""`!cvar pTools {', '.join(profs)}`""")
-        if expertise:
-            out.append(f"""`!cvar eTools {', '.join(expertise)}`""")
-        await ctx.send('\n'.join(out) or "No tool proficiencies found.")
-    else:
-        await ctx.send("Unable to find a valid DDB character link.")
-
-
-@bot.command()
-async def new_char(ctx, url):
-    """Runs the various commands that assist with creating new characters, given a provided DDB character sheet."""
-    _commands = ['get_desc', 'get_bags', 'get_tools']
-    for command in _commands:
-        command = bot.get_command(command)
-        await ctx.invoke(command, url=url)
 
 for cog in COGS:
     bot.load_extension(cog)
