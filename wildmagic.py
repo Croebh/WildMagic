@@ -1,10 +1,13 @@
+import asyncio
+import logging
 import os
 import sys
-import json
-import re
-import requests
+import traceback
 
-from utils import checks, config, utils
+from aiohttp import ClientResponseError, ClientOSError
+from disnake import Forbidden, HTTPException, NotFound, InvalidArgument
+
+from utils import checks, config
 
 import disnake
 from disnake.ext import commands
@@ -15,7 +18,7 @@ from disnake.ext.commands import (
 )
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ('cogsmisc.repl', 'cogsddb.charinfo')
+COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv')
 
 PREFIX = "??"
 NEWLINE = "\n"
@@ -31,18 +34,17 @@ class CustomHelp(commands.DefaultHelpCommand):
             embed = disnake.Embed(description=page)
             await destination.send(embed=embed)
 
-    def add_indented_commands(self, commands, *, heading, max_size=None):
-        if not commands:
+    def add_indented_commands(self, command_iter, *, heading, max_size=None):
+        if not command_iter:
             return
 
-        self.paginator.add_line(heading)
-        max_size = max_size or self.get_max_size(commands)
+        self.paginator.add_line(f"**{heading}**")
 
-        for command in commands:
+        for command in command_iter:
             name = command.name
-            params = [f"" for param in command.clean_params]
-            entry = f'`{PREFIX}{name} {command.signature}` - {command.short_doc}'
+            entry = f'`{PREFIX}{name} {command.signature}`\n> {command.short_doc}'
             self.paginator.add_line(entry)
+        self.paginator.add_line()
 
 
 bot = commands.Bot(
@@ -54,7 +56,8 @@ bot = commands.Bot(
     help_command=CustomHelp(sort_commands=False,
                             width=1000,
                             paginator=commands.Paginator(prefix=None, suffix=None),
-                            no_category="Uncategorized")
+                            no_category="Uncategorized"),
+    test_guilds=[558408317957832726],
 )
 
 
@@ -86,7 +89,73 @@ async def restart(ctx):
     print("Restarting...")
     os.execv(sys.executable, ["python"] + sys.argv)
 
+log_formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(log_formatter)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+log = logging.getLogger("bot")
+
+
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return
+
+    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
+        return await ctx.send(
+            f"Error: {str(error)}\nUse `{ctx.prefix}help " + ctx.command.qualified_name + "` for help."
+        )
+
+    elif isinstance(error, commands.CheckFailure):
+        msg = str(error) or "You are not allowed to run this command."
+        return await ctx.send(f"Error: {msg}")
+
+    elif isinstance(error, commands.CommandOnCooldown):
+        return await ctx.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
+
+    elif isinstance(error, commands.MaxConcurrencyReached):
+        return await ctx.send(str(error))
+
+    elif isinstance(error, CommandInvokeError):
+        original = error.original
+
+        if isinstance(original, Forbidden):
+            try:
+                return await ctx.author.send(
+                    f"Error: I am missing permissions to run this command. "
+                    f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
+                )
+            except HTTPException:
+                try:
+                    return await ctx.send(f"Error: I cannot send messages to this user.")
+                except HTTPException:
+                    return
+
+        elif isinstance(original, NotFound):
+            return await ctx.send("Error: I tried to edit or delete a message that no longer exists.")
+
+        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
+            return await ctx.send("Error in Discord API. Please try again.")
+
+        elif isinstance(original, HTTPException):
+            if original.response.status == 400:
+                return await ctx.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
+            elif 499 < original.response.status < 600:
+                return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
+
+    await ctx.send(
+        f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! "
+        f"Please join <https://support.avrae.io> and let us know about the error!"
+    )
+
+    log.warning("Error caused by message: `{}`".format(ctx.message.content))
+    for line in traceback.format_exception(type(error), error, error.__traceback__):
+        log.warning(line)
+
 for cog in COGS:
     bot.load_extension(cog)
 
-bot.run(config.TOKEN)
+if __name__ == "__main__":
+    bot.run(config.TOKEN)
