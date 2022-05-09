@@ -10,7 +10,7 @@ from disnake import Forbidden, HTTPException, NotFound, InvalidArgument
 from utils import checks, config
 
 import disnake
-from disnake.ext import commands
+from disnake.ext import tasks, commands
 from disnake.ext.commands import (
     CommandInvokeError,
     CommandNotFound,
@@ -18,7 +18,7 @@ from disnake.ext.commands import (
 )
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv')
+COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv', 'cogsserver.serverlocale')
 
 PREFIX = "??"
 NEWLINE = "\n"

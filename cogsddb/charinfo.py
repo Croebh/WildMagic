@@ -23,11 +23,11 @@ class CharInfo(commands.Cog):
                            await self._get_languages(ctx, url, data),
                            await self._get_feats(ctx, url, data)]
                if i]
-        if issues:
-            await ctx.send(f"**Issues found:**\n{', '.join(issues)}")
         await ctx.send("Copy and paste the following command into this channel:\n```py\n!multiline\n"
                        + '\n'.join(out)
                        + "\n```")
+        if issues:
+            await ctx.send(f"**Issues found:**\n{', '.join(issues)}")
 
     @commands.command()
     async def get_desc(self, ctx: commands.Context, url: str):
