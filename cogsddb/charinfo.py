@@ -118,7 +118,7 @@ class CharInfo(commands.Cog):
         if out["weight"] == "weight":
             issues.append("Weight not set")
         if out["appearance"] == "Write a bit about attitude, appearance, and background here.":
-            issues.append("Description not set")
+            issues.append("Description (Appearance on DDB) not set")
         for trait in ("traits", "ideals", "bonds", "flaws"):
             if "Enter your D&D Beyond rolled trait(s) here" in out[trait]:
                 issues.append(f"{trait.title()} not set")

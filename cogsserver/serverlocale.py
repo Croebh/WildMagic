@@ -6,6 +6,7 @@ from pytz import timezone
 
 
 weather = [
+  # Emoji, Type, Min, Max
   ("☀️", "Clear", 20, 30),
   ("⛅", "Overcast", 15, 23),
   ("☁️", "Foggy", 9, 16),
