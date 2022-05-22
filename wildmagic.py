@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import traceback
+from datetime import datetime, timedelta, timezone
 
 from aiohttp import ClientResponseError, ClientOSError
 from disnake import Forbidden, HTTPException, NotFound, InvalidArgument
@@ -98,6 +99,19 @@ logger.addHandler(handler)
 log = logging.getLogger("bot")
 
 
+@bot.listen('on_message')
+async def check_account_age(message):
+    if message.channel.id == 914453395472023612 and message.embeds:
+        embed = message.embeds[0]
+        author = embed.author
+        member = message.channel.guild.get_member_named(author.name)
+        age = member.created_at
+
+        if age > datetime.now(tz=timezone.utc)-timedelta(days=180):
+            await asyncio.sleep(10)
+            await message.add_reaction('\N{baby}')
+
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
@@ -147,7 +161,6 @@ async def on_command_error(ctx, error):
 
     await ctx.send(
         f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! "
-        f"Please join <https://support.avrae.io> and let us know about the error!"
     )
 
     log.warning("Error caused by message: `{}`".format(ctx.message.content))

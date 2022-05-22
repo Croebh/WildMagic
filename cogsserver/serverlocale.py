@@ -19,6 +19,7 @@ weather = [
 def get_time():
     tz = timezone('US/Eastern')
     now = datetime.now(tz)
+    print(now)
     current_time = now.strftime("%I:00 %p").strip('0')
     return current_time
 
@@ -31,6 +32,7 @@ def get_weather():
 class ServerStuff(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.get_weather = False
 
         self.current_time = "Server Time: LOADING"
         self.set_server_time.start()
@@ -56,6 +58,10 @@ class ServerStuff(commands.Cog):
     @tasks.loop(hours=12)
     async def set_server_weather(self):
         channel = self.bot.get_channel(958400248517132349)
+        # So we don't rate limit ourselves on reboots
+        if not self.get_weather:
+            self.get_weather = True
+            return
         await channel.edit(name=get_weather())
 
     @set_server_weather.before_loop
