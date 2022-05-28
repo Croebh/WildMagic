@@ -19,7 +19,7 @@ from disnake.ext.commands import (
 )
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv', 'cogsserver.serverlocale')
+COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv', 'cogsserver.search', 'cogsserver.serverlocale')
 
 PREFIX = "??"
 NEWLINE = "\n"
