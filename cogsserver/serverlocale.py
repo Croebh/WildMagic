@@ -2,6 +2,7 @@ from random import choice
 
 from disnake.ext import tasks, commands
 from datetime import datetime
+from dateparser import parse as timeparse
 from pytz import timezone
 
 
@@ -19,7 +20,6 @@ weather = [
 def get_time():
     tz = timezone('US/Eastern')
     now = datetime.now(tz)
-    print(now)
     current_time = now.strftime("%I:00 %p").strip('0')
     return current_time
 
@@ -67,6 +67,14 @@ class ServerStuff(commands.Cog):
     @set_server_weather.before_loop
     async def before_set_server_weather(self):
         await self.bot.wait_until_ready()
+
+    @commands.command()
+    async def time(self, ctx: commands.Context, *, time: str):
+        """Generates a Discord timestamp based on user input."""
+        time = timeparse(time)
+        if time:
+            timestamp = int(time.timestamp())
+            await ctx.send(f"""<t:{timestamp}> `<t:{timestamp}>`\n<t:{timestamp}:R> `<t:{timestamp}:R>`""")
 
 
 def setup(bot):
