@@ -218,7 +218,12 @@ class CharInfo(commands.Cog):
             item_name = item["definition"]["name"]
             quantity = item["quantity"]
             out[bag_name][item_name] = out[bag_name].get(item_name, 0) + quantity
-        return f"!cvar bags {json.dumps(list(out.items()))}"
+        bag_settings = {"weightlessBags": ["bag of holding", "handy haversack",
+                "heward's handy haversack"], "customWeights": {}, "weightTracking": "Off",
+                "openMode": "One", "encumbrance": "Off"}
+        return (f"!cvar bags {json.dumps(list(out.items()))}\n"
+                f"""!cvar bagSettings {json.dumps(bag_settings)}\n"""
+                f"!csettings compactcoins true")
 
 
 def setup(bot):
