@@ -23,25 +23,35 @@ class CharInfo(commands.Cog):
                            await self._get_languages(ctx, url, data),
                            await self._get_feats(ctx, url, data)]
                if i]
-        await ctx.send("Copy and paste the following command into this channel:\n```py\n!multiline\n"
-                       + '\n'.join(out)
-                       + "\n```")
+
+        # If their description is long enough to make this over the limit, send it seperately
+        if len('\n'.join(out)) >= 1900:
+            await ctx.send("**__Copy and paste the following commands into this channel:__**\n```py\n"
+                           + out[0]
+                           + "\n```")
+            await ctx.send("```py\n!multiline\n"
+                           + '\n'.join(out[1:])
+                           + "\n```")
+        else:
+            await ctx.send("**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n"
+                           + '\n'.join(out)
+                           + "\n```")
         if issues:
-            await ctx.send(f"**Issues found:**\n{', '.join(issues)}")
+            await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
     @commands.command()
     async def get_desc(self, ctx: commands.Context, url: str):
         """Generates a command to set up your characters description, given a provided DDB character sheet."""
         out, issues = await self._get_desc(ctx, url)
-        await ctx.send(f"Copy and paste the following command into this channel:\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
         if issues:
-            await ctx.send(f"**Issues found:**\n{', '.join(issues)}")
+            await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
     @commands.command()
     async def get_languages(self, ctx: commands.Context, url: str):
         """Generates a command to set up your characters languages, given a provided DDB character sheet."""
         out = await self._get_languages(ctx, url)
-        await ctx.send(f"Copy and paste the following command into this channel:\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
     async def get_feats(self, ctx: commands.Context, url: str):
@@ -50,7 +60,7 @@ class CharInfo(commands.Cog):
         if not out:
             await ctx.send("No feats found.")
             return
-        await ctx.send(f"Copy and paste the following command into this channel:\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
     async def get_tools(self, ctx: commands.Context, url: str):
@@ -60,13 +70,13 @@ class CharInfo(commands.Cog):
         if not out:
             await ctx.send("No tool proficiencies found.")
             return
-        await ctx.send(f"Copy and paste the following command into this channel:\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
     async def get_bags(self, ctx: commands.Context, url: str):
         """Generates a command to set up the `!bag` alias, given a provided DDB character sheet."""
         out = await self._get_bags(ctx, url)
-        await ctx.send(f"Copy and paste the following command into this channel:\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n{out}\n```")
 
     @staticmethod
     async def get_character_data(ctx: commands.Context, url: str):
@@ -122,8 +132,10 @@ class CharInfo(commands.Cog):
         for trait in ("traits", "ideals", "bonds", "flaws"):
             if "Enter your D&D Beyond rolled trait(s) here" in out[trait]:
                 issues.append(f"{trait.title()} not set")
+
+        appearance = '\n'.join([f"> {line}" for line in out["appearance"].strip().splitlines()])
         desc_out = f"""!desc update __**{out['height']} | {out['weight']} | {out['race']} | {out['class']}**__
-                       > {out["appearance"].strip()}
+                       {appearance}
                        **Personality Traits**
                        {out["traits"].strip()}
                        **Ideals**
