@@ -111,8 +111,9 @@ class CharInfo(commands.Cog):
             "weight": f'{data["weight"]} lb.' if data["weight"] else "weight",
             "race": data['race']['fullName'] or "race",
             "class": '/'.join(classes) or "class",
-            "appearance": data['traits'][
-                              "appearance"] or "Write a bit about attitude, appearance, and background here.",
+            "appearance": (data['traits']["appearance"] or
+                           data.get('notes', {}).get('backstory') or
+                           "Write a bit about attitude, appearance, and background here."),
             "traits": data['traits'][
                           "personalityTraits"] or "Enter your D&D Beyond rolled trait(s) here\n"
                                                   "Enter your D&D Beyond rolled trait(s) here",
