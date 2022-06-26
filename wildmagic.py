@@ -12,14 +12,10 @@ from utils import checks, config
 
 import disnake
 from disnake.ext import tasks, commands
-from disnake.ext.commands import (
-    CommandInvokeError,
-    CommandNotFound,
-    MissingRequiredArgument
-)
+from disnake.ext.commands import CommandInvokeError, CommandNotFound, MissingRequiredArgument
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ('cogsmisc.repl', 'cogsddb.charinfo', 'cogshome.tv', 'cogsserver.search', 'cogsserver.serverlocale')
+COGS = ("cogsmisc.repl", "cogsddb.charinfo", "cogshome.tv", "cogsserver.search", "cogsserver.serverlocale")
 
 PREFIX = "??"
 NEWLINE = "\n"
@@ -28,7 +24,6 @@ intents = disnake.Intents.all()
 
 
 class CustomHelp(commands.DefaultHelpCommand):
-
     async def send_pages(self):
         destination = self.get_destination()
         for page in self.paginator.pages:
@@ -43,7 +38,7 @@ class CustomHelp(commands.DefaultHelpCommand):
 
         for command in command_iter:
             name = command.name
-            entry = f'`{PREFIX}{name} {command.signature}`\n> {command.short_doc}'
+            entry = f"`{PREFIX}{name} {command.signature}`\n> {command.short_doc}"
             self.paginator.add_line(entry)
         self.paginator.add_line()
 
@@ -54,10 +49,12 @@ bot = commands.Bot(
     case_insensitive=True,
     intents=intents,
     owner_id=config.OWNER_ID,
-    help_command=CustomHelp(sort_commands=False,
-                            width=1000,
-                            paginator=commands.Paginator(prefix=None, suffix=None),
-                            no_category="Uncategorized"),
+    help_command=CustomHelp(
+        sort_commands=False,
+        width=1000,
+        paginator=commands.Paginator(prefix=None, suffix=None),
+        no_category="Uncategorized",
+    ),
     test_guilds=[558408317957832726],
 )
 
@@ -68,9 +65,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
         error_msg = f"Command not found. View `{PREFIX}help` for valid commands."
     elif isinstance(error, (CommandInvokeError, MissingRequiredArgument)):
-        error_msg = (
-            f"Incorrect invocation. Please re-examine the command in `{PREFIX}help`."
-        )
+        error_msg = f"Incorrect invocation. Please re-examine the command in `{PREFIX}help`."
     elif isinstance(error, MissingAnyRole):
         error_msg = "You don't have any of the roles required to run this command."
     await ctx.message.channel.send(f"Error: {error_msg} ({error})")
@@ -90,6 +85,7 @@ async def restart(ctx):
     print("Restarting...")
     os.execv(sys.executable, ["python"] + sys.argv)
 
+
 log_formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(log_formatter)
@@ -99,7 +95,7 @@ logger.addHandler(handler)
 log = logging.getLogger("bot")
 
 
-@bot.listen('on_message')
+@bot.listen("on_message")
 async def check_account_age(message):
     if message.channel.id == 914453395472023612 and message.embeds:
         embed = message.embeds[0]
@@ -107,9 +103,9 @@ async def check_account_age(message):
         member = message.channel.guild.get_member_named(author.name)
         age = member.created_at
 
-        if age > datetime.now(tz=timezone.utc)-timedelta(days=180):
+        if age > datetime.now(tz=timezone.utc) - timedelta(days=180):
             await asyncio.sleep(10)
-            await message.add_reaction('\N{baby}')
+            await message.add_reaction("\N{baby}")
 
 
 @bot.event
@@ -138,7 +134,7 @@ async def on_command_error(ctx, error):
         if isinstance(original, Forbidden):
             try:
                 return await ctx.author.send(
-                    f"Error: I am missing permissions to run this command. "
+                    "Error: I am missing permissions to run this command. "
                     f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
                 )
             except HTTPException:
@@ -159,13 +155,12 @@ async def on_command_error(ctx, error):
             elif 499 < original.response.status < 600:
                 return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
 
-    await ctx.send(
-        f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! "
-    )
+    await ctx.send(f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! ")
 
     log.warning("Error caused by message: `{}`".format(ctx.message.content))
     for line in traceback.format_exception(type(error), error, error.__traceback__):
         log.warning(line)
+
 
 for cog in COGS:
     bot.load_extension(cog)

@@ -15,7 +15,7 @@ def list_get(index, default, l):
     return a
 
 
-EPHEMERAL_ARG_RE = re.compile(r'([^\s]+)(\d+)')
+EPHEMERAL_ARG_RE = re.compile(r"([^\s]+)(\d+)")
 QUOTE_PAIRS = {
     '"': '"',
     "'": "'",
@@ -62,8 +62,8 @@ def argparse(args, splitter=argsplit):
     parsed = collections.defaultdict(lambda: [])
     index = 0
     for a in args:
-        if a.startswith('-'):
-            parsed[a.lstrip('-')].append(list_get(index + 1, True, args))
+        if a.startswith("-"):
+            parsed[a.lstrip("-")].append(list_get(index + 1, True, args))
         else:
             parsed[a].append(True)
         index += 1
@@ -71,8 +71,8 @@ def argparse(args, splitter=argsplit):
 
 
 def argquote(arg: str):
-    if ' ' in arg:
-        arg = arg.replace("\"", "\\\"")  # re.sub(r'(?<!\\)"', r'\"', arg)
+    if " " in arg:
+        arg = arg.replace('"', '\\"')  # re.sub(r'(?<!\\)"', r'\"', arg)
         arg = f'"{arg}"'
     return arg
 
@@ -270,11 +270,11 @@ class CustomStringView(StringView):
                 if is_quoted:
                     # unexpected EOF
                     raise ExpectedClosingQuoteError(close_quote)
-                return ''.join(result)
+                return "".join(result)
 
             # currently we accept strings in the format of "hello world"
             # to embed a quote inside the string you must escape it: "a \"world\""
-            if current == '\\':
+            if current == "\\":
                 next_char = self.get()
                 if next_char in _escaped_quotes:
                     # escaped quote
@@ -304,19 +304,18 @@ class CustomStringView(StringView):
                     continue
 
                 # we're quoted so it's okay
-                return ''.join(result)
+                return "".join(result)
 
             if current.isspace() and not is_quoted:
                 # end of word found
-                return ''.join(result)
+                return "".join(result)
 
             result.append(current)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     while True:
         try:
-            print(argsplit(input('>>> ')))
+            print(argsplit(input(">>> ")))
         except BadArgument as e:
             print(e)
-

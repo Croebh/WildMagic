@@ -12,116 +12,124 @@ class CharInfo(commands.Cog):
         self.bot = bot
 
     @commands.command()
-    async def new_char(self, ctx: commands.Context, url: str):
+    async def new_char(self, ctx: commands.Context, sheet_url: str):
         """Generates a multiline command that assist with creating new characters,
         given a provided DDB character sheet."""
-        data = await self.get_character_data(ctx, url)
-        desc, issues = await self._get_desc(ctx, url, data)
-        out = [i for i in [desc,
-                           await self._get_bags(ctx, url, data),
-                           await self._get_tools(ctx, url, data),
-                           await self._get_languages(ctx, url, data),
-                           await self._get_feats(ctx, url, data)]
-               if i]
+        data = await self.get_character_data(ctx, sheet_url)
+        desc, issues = await self._get_desc(ctx, sheet_url, data)
+        out = [
+            i
+            for i in [
+                desc,
+                await self._get_bags(ctx, sheet_url, data),
+                await self._get_tools(ctx, sheet_url, data),
+                await self._get_languages(ctx, sheet_url, data),
+                await self._get_feats(ctx, sheet_url, data),
+            ]
+            if i
+        ]
 
         # If their description is long enough to make this over the limit, send it seperately
-        if len('\n'.join(out)) >= 1900:
-            await ctx.send("**__Copy and paste the following commands into this channel:__**\n```py\n"
-                           + out[0]
-                           + "\n```")
-            await ctx.send("```py\n!multiline\n"
-                           + '\n'.join(out[1:])
-                           + "\n```")
+        if len("\n".join(out)) >= 1900:
+            await ctx.send(
+                "**__Copy and paste the following commands into this channel:__**\n```py\n"
+                + ((out[0][:1900] + "...") if len(out[0]) >= 1900 else out[0])
+                + "\n```"
+            )
+            await ctx.send("```py\n!multiline\n" + "\n".join(out[1:]) + "\n```")
         else:
-            await ctx.send("**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n"
-                           + '\n'.join(out)
-                           + "\n```")
+            await ctx.send(
+                "**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n"
+                + "\n".join(out)
+                + "\n```"
+            )
         if issues:
             await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
     @commands.command()
-    async def get_desc(self, ctx: commands.Context, url: str):
+    async def get_desc(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters description, given a provided DDB character sheet."""
-        out, issues = await self._get_desc(ctx, url)
+        out, issues = await self._get_desc(ctx, sheet_url)
+        out = (out[:1900] + "...") if len(out) >= 1900 else out
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
         if issues:
             await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
     @commands.command()
-    async def get_languages(self, ctx: commands.Context, url: str):
+    async def get_languages(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters languages, given a provided DDB character sheet."""
-        out = await self._get_languages(ctx, url)
+        out = await self._get_languages(ctx, sheet_url)
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
-    async def get_feats(self, ctx: commands.Context, url: str):
+    async def get_feats(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters feats, given a provided DDB character sheet."""
-        out = await self._get_feats(ctx, url)
+        out = await self._get_feats(ctx, sheet_url)
         if not out:
             await ctx.send("No feats found.")
             return
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
-    async def get_tools(self, ctx: commands.Context, url: str):
+    async def get_tools(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your tool proficiencies for `!tool`, given a provided DDB character sheet."""
 
-        out = await self._get_tools(ctx, url)
+        out = await self._get_tools(ctx, sheet_url)
         if not out:
             await ctx.send("No tool proficiencies found.")
             return
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
     @commands.command()
-    async def get_bags(self, ctx: commands.Context, url: str):
+    async def get_bags(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up the `!bag` alias, given a provided DDB character sheet."""
-        out = await self._get_bags(ctx, url)
-        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n{out}\n```")
+        out = await self._get_bags(ctx, sheet_url)
+        await ctx.send(
+            f"**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n{out}\n```"
+        )
 
     @staticmethod
-    async def get_character_data(ctx: commands.Context, url: str):
+    async def get_character_data(ctx: commands.Context, sheet_url: str):
         regex = r"^.*characters\/(\d+)\/?"
-        match = re.search(regex, url)
+        match = re.search(regex, sheet_url)
 
         if not match:
             await ctx.send("Unable to find a valid DDB character link.")
             return
 
-        url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
-        resp = requests.get(url)
-        json_data = json.loads(resp.content)['data']
+        sheet_url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
+        resp = requests.get(sheet_url)
+        json_data = json.loads(resp.content)["data"]
         return json_data
 
-    async def _get_desc(self, ctx: commands.Context, url: str, data: dict = None) -> tuple[str, list[str]]:
+    async def _get_desc(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> tuple[str, list[str]]:
 
-        alignments = ["LG", "NG", "CG",
-                      "LN", "TN", "CN",
-                      "LE", "NE", "CE"]
+        alignments = ["LG", "NG", "CG", "LN", "TN", "CN", "LE", "NE", "CE"]
         if data is None:
-            data = await self.get_character_data(ctx, url)
+            data = await self.get_character_data(ctx, sheet_url)
 
         classes = []
-        for _class in data['classes']:
-            cur_class = _class['definition']['name']
-            if _class['subclassDefinition']:
+        for _class in data["classes"]:
+            cur_class = _class["definition"]["name"]
+            if _class["subclassDefinition"]:
                 cur_class += f" ({_class['subclassDefinition']['name']})"
             classes.append(cur_class)
         out = {
             "height": data["height"] or "height",
             "weight": f'{data["weight"]} lb.' if data["weight"] else "weight",
-            "race": data['race']['fullName'] or "race",
-            "class": '/'.join(classes) or "class",
-            "appearance": (data['traits']["appearance"] or
-                           data.get('notes', {}).get('backstory') or
-                           "Write a bit about attitude, appearance, and background here."),
-            "traits": data['traits'][
-                          "personalityTraits"] or "Enter your D&D Beyond rolled trait(s) here\n"
-                                                  "Enter your D&D Beyond rolled trait(s) here",
-            "ideals": data['traits']["ideals"] or "Enter your D&D Beyond rolled ideal(s) here",
-            "bonds": data['traits']["bonds"] or "Enter your D&D Beyond rolled bond(s) here",
-            "flaws": data['traits']["flaws"] or "Enter your D&D Beyond rolled flaw(s) here",
-            "alignment": alignments[data['alignmentId'] - 1] if data[
-                'alignmentId'] else "Enter your alignment"
+            "race": data["race"]["fullName"] or "race",
+            "class": "/".join(classes) or "class",
+            "appearance": (
+                data["traits"]["appearance"]
+                or data.get("notes", {}).get("backstory")
+                or "Write a bit about attitude, appearance, and background here."
+            ),
+            "traits": data["traits"]["personalityTraits"]
+            or "Enter your D&D Beyond rolled trait(s) here\nEnter your D&D Beyond rolled trait(s) here",
+            "ideals": data["traits"]["ideals"] or "Enter your D&D Beyond rolled ideal(s) here",
+            "bonds": data["traits"]["bonds"] or "Enter your D&D Beyond rolled bond(s) here",
+            "flaws": data["traits"]["flaws"] or "Enter your D&D Beyond rolled flaw(s) here",
+            "alignment": alignments[data["alignmentId"] - 1] if data["alignmentId"] else "Enter your alignment",
         }
         issues = []
         if out["height"] == "height":
@@ -134,7 +142,7 @@ class CharInfo(commands.Cog):
             if "Enter your D&D Beyond rolled trait(s) here" in out[trait]:
                 issues.append(f"{trait.title()} not set")
 
-        appearance = '\n'.join([f"> {line}" for line in out["appearance"].strip().splitlines()])
+        appearance = "\n".join([f"> {line}" for line in out["appearance"].strip().splitlines()])
         desc_out = f"""!desc update __**{out['height']} | {out['weight']} | {out['race']} | {out['class']}**__
                        {appearance}
                        **Personality Traits**
@@ -147,57 +155,57 @@ class CharInfo(commands.Cog):
                        {out["flaws"].strip()}
                        **Alignment**
                        {out["alignment"].strip()}"""
-        return '\n'.join([line.strip() for line in desc_out.splitlines()]), issues
+        return "\n".join([line.strip() for line in desc_out.splitlines()]), issues
 
-    async def _get_tools(self, ctx: commands.Context, url: str, data: dict = None) -> Optional[str]:
+    async def _get_tools(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> Optional[str]:
         if data is None:
-            data = await self.get_character_data(ctx, url)
+            data = await self.get_character_data(ctx, sheet_url)
 
         profs = []
         expertise = []
-        for _type in data['modifiers']:
-            for modifier in data['modifiers'][_type]:
+        for _type in data["modifiers"]:
+            for modifier in data["modifiers"][_type]:
                 # We only care about tool proficiencies
-                if modifier['entityTypeId'] == 2103445194:
-                    if modifier['type'] == 'proficiency':
-                        profs.append(modifier['friendlySubtypeName'])
-                    if modifier['type'] == 'expertise':
-                        expertise.append(modifier['friendlySubtypeName'])
+                if modifier["entityTypeId"] == 2103445194:
+                    if modifier["type"] == "proficiency":
+                        profs.append(modifier["friendlySubtypeName"])
+                    if modifier["type"] == "expertise":
+                        expertise.append(modifier["friendlySubtypeName"])
         out = []
         if profs:
             out.append(f"""!cvar pTools {', '.join(profs)}""")
         if expertise:
             out.append(f"""!cvar eTools {', '.join(expertise)}""")
-        return '\n'.join(out) or None
+        return "\n".join(out) or None
 
-    async def _get_languages(self, ctx: commands.Context, url: str, data: dict = None) -> Optional[str]:
+    async def _get_languages(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> Optional[str]:
         if data is None:
-            data = await self.get_character_data(ctx, url)
+            data = await self.get_character_data(ctx, sheet_url)
 
         languages = []
-        for _type in data['modifiers']:
-            for modifier in data['modifiers'][_type]:
+        for _type in data["modifiers"]:
+            for modifier in data["modifiers"][_type]:
                 # We only care about languages
-                if modifier['entityTypeId'] == 906033267:
-                    languages.append(modifier['friendlySubtypeName'])
+                if modifier["entityTypeId"] == 906033267:
+                    languages.append(modifier["friendlySubtypeName"])
 
         return f"""!cvar languages {', '.join(languages)}"""
 
-    async def _get_feats(self, ctx: commands.Context, url: str, data: dict = None) -> Optional[str]:
+    async def _get_feats(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> Optional[str]:
         if data is None:
-            data = await self.get_character_data(ctx, url)
+            data = await self.get_character_data(ctx, sheet_url)
 
         feats = []
-        for _feat in data['feats']:
-            feats.append(_feat['definition']['name'])
+        for _feat in data["feats"]:
+            feats.append(_feat["definition"]["name"])
 
         if feats:
             return f"""!cvar feats {', '.join(feats)}"""
 
-    async def _get_bags(self, ctx: commands.Context, url: str, data: dict = None) -> str:
+    async def _get_bags(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> str:
 
         if data is None:
-            data = await self.get_character_data(ctx, url)
+            data = await self.get_character_data(ctx, sheet_url)
 
         out = {
             "Backpack": {},
@@ -218,12 +226,18 @@ class CharInfo(commands.Cog):
             item_name = item["definition"]["name"]
             quantity = item["quantity"]
             out[bag_name][item_name] = out[bag_name].get(item_name, 0) + quantity
-        bag_settings = {"weightlessBags": ["bag of holding", "handy haversack",
-                "heward's handy haversack"], "customWeights": {}, "weightTracking": "Off",
-                "openMode": "One", "encumbrance": "Off"}
-        return (f"!cvar bags {json.dumps(list(out.items()))}\n"
-                f"""!cvar bagSettings {json.dumps(bag_settings)}\n"""
-                f"!csettings compactcoins true")
+        bag_settings = {
+            "weightlessBags": ["bag of holding", "handy haversack", "heward's handy haversack"],
+            "customWeights": {},
+            "weightTracking": "Off",
+            "openMode": "One",
+            "encumbrance": "Off",
+        }
+        return (
+            f"!cvar bags {json.dumps(list(out.items()))}\n"
+            f"""!cvar bagSettings {json.dumps(bag_settings)}\n"""
+            f"!csettings compactcoins true"
+        )
 
 
 def setup(bot):

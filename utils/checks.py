@@ -40,7 +40,6 @@ def _role_or_permissions(ctx, role_filter, **perms):
     if isinstance(ch, disnake.abc.PrivateChannel):
         return False  # can't have roles in PMs
 
-    
     try:
         role = disnake.utils.find(role_filter, author.roles)
     except:
@@ -63,7 +62,8 @@ def role_or_permissions(role_name, **perms):
         if _role_or_permissions(ctx, lambda r: r.name.lower() == role_name.lower(), **perms):
             return True
         raise commands.CheckFailure(
-            f"You require a role named {role_name} or these permissions to run this command: {', '.join(perms)}")
+            f"You require a role named {role_name} or these permissions to run this command: {', '.join(perms)}"
+        )
 
     return commands.check(predicate)
 
@@ -74,7 +74,7 @@ def admin_or_permissions(**perms):
         if _role_or_permissions(ctx, lambda r: r.name.lower() == admin_role.lower(), **perms):
             return True
         raise commands.CheckFailure(
-            f"You require a role named Administrator or these permissions to run this command: {', '.join(perms)}")
+            f"You require a role named Administrator or these permissions to run this command: {', '.join(perms)}"
+        )
 
     return commands.check(predicate)
-

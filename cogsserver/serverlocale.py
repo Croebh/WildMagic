@@ -5,22 +5,23 @@ from datetime import datetime
 from dateparser import parse as timeparse
 from pytz import timezone
 
+from utils import checks
 
 weather = [
-  # Emoji, Type, Min, Max
-  ("☀️", "Clear", 20, 30),
-  ("⛅", "Overcast", 15, 23),
-  ("☁️", "Foggy", 9, 16),
-  ("🌧️", "Rain", 3, 15),
-  ("⛈️", "Storms", -5, 12),
-  ("🌨️", "Snow", -25, -5)
+    # Emoji, Type, Min, Max
+    ("☀️", "Clear", 20, 30),
+    ("⛅", "Overcast", 15, 23),
+    ("☁️", "Foggy", 9, 16),
+    ("🌧️", "Rain", 3, 15),
+    ("⛈️", "Storms", -5, 12),
+    ("🌨️", "Snow", -25, -5),
 ]
 
 
 def get_time():
-    tz = timezone('US/Eastern')
+    tz = timezone("US/Eastern")
     now = datetime.now(tz)
-    current_time = now.strftime("%I:00 %p").strip('0')
+    current_time = now.strftime("%I:00 %p").strip("0")
     return current_time
 
 
@@ -29,7 +30,7 @@ def get_weather():
     return f"{w_emoji} {w_type}🌡 {choice(list(range(t_min, t_max)))}°C"
 
 
-class ServerStuff(commands.Cog):
+class Locale(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.get_weather = False
@@ -62,13 +63,22 @@ class ServerStuff(commands.Cog):
         if not self.get_weather:
             self.get_weather = True
             return
-        await channel.edit(name=get_weather())
+        new_weather = get_weather()
+        await channel.edit(name=new_weather)
+        return new_weather
 
     @set_server_weather.before_loop
     async def before_set_server_weather(self):
         await self.bot.wait_until_ready()
 
     @commands.command()
+    @checks.is_owner()
+    async def update_weather(self, ctx):
+        async with ctx.typing():
+            new_weather = await self.set_server_weather()
+        await ctx.send(f"Weather updated - {new_weather}")
+
+    @commands.command(aliases=["timer", "timestamp"])
     async def time(self, ctx: commands.Context, *, time: str):
         """Generates a Discord timestamp based on user input."""
         time = timeparse(time)
@@ -78,4 +88,4 @@ class ServerStuff(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(ServerStuff(bot))
+    bot.add_cog(Locale(bot))

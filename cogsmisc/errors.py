@@ -7,16 +7,19 @@ class WildException(Exception):
 
 class InvalidArgument(WildException):
     """Raised when an argument is invalid."""
+
     pass
 
 
 class NotAllowed(WildException):
     """Raised when a user tries to do something they are not allowed to do by role or dependency."""
+
     pass
 
 
 class SelectionException(WildException):
     """A base exception for message awaiting exceptions to stem from."""
+
     pass
 
 

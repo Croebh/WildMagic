@@ -137,21 +137,21 @@ class TV(commands.Cog):
     async def power(self, ctx: commands.Context, change: int = None):
         """Checks the power status for the TV, or turns it on (1) or off (0)"""
         if self.tv.connected:
-            await ctx.send("```\n" + '\n'.join(self.tv.power(change)[1]) + "\n```")
+            await ctx.send("```\n" + "\n".join(self.tv.power(change)[1]) + "\n```")
 
     @commands.command(hidden=True)
     @checks.is_owner()
     async def volume(self, ctx: commands.Context, change: int = None):
         """Checks the volume status for the TV, or sets it (0-100)."""
         if self.tv.connected:
-            await ctx.send("```\n" + '\n'.join(self.tv.volume(change)[1]) + "\n```")
+            await ctx.send("```\n" + "\n".join(self.tv.volume(change)[1]) + "\n```")
 
     @commands.command(hidden=True)
     @checks.is_owner()
     async def input(self, ctx: commands.Context, change: int = None):
         """Checks the input on the TV, or changes it. 3 is Chromecast"""
         if self.tv.connected:
-            await ctx.send("```\n" + '\n'.join(self.tv.input(change)[1]) + "\n```")
+            await ctx.send("```\n" + "\n".join(self.tv.input(change)[1]) + "\n```")
 
     @commands.command(hidden=True)
     @checks.is_owner()
@@ -159,7 +159,7 @@ class TV(commands.Cog):
         """Powers On da tv, sets input to Chromecast, and volume to 33"""
         if not self.tv.connected:
             self.tv.connect()
-        await ctx.send("```\n" + '\n'.join(self.tv.setup_kids()) + "\n```")
+        await ctx.send("```\n" + "\n".join(self.tv.setup_kids()) + "\n```")
 
     @commands.command(hidden=True)
     async def tv(self, ctx):
@@ -167,14 +167,10 @@ class TV(commands.Cog):
         await tv_ui.send_to(ctx)
 
 
-_VOLUME_OPTIONS = [
-    disnake.SelectOption(label=f"{vol}", value=f"{vol}")
-    for vol in range(0, 101, 5)
-]
+_VOLUME_OPTIONS = [disnake.SelectOption(label=f"{vol}", value=f"{vol}") for vol in range(0, 101, 5)]
 
 
 class TVView(MenuBase):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.timeout = 30
@@ -218,7 +214,6 @@ class TVView(MenuBase):
         self.tv.close()
         await self.message.edit(view=None)
 
-
     async def _before_send(self):
         self.power_toggle.style = disnake.ButtonStyle.danger if self.power[0] == "1" else disnake.ButtonStyle.primary
 
@@ -227,12 +222,9 @@ class TVView(MenuBase):
             title=f"TV Controls",
             colour=disnake.Colour.blurple(),
         )
-        embed.add_field(name="Power State",
-                        value=self.power[1][-1])
-        embed.add_field(name="Volume",
-                        value=self.volume[1][-1] if self.volume else "Unknown")
-        embed.add_field(name="Input (3 is Chromecast)",
-                        value=self.input[1][-1] if self.input else "Unknown")
+        embed.add_field(name="Power State", value=self.power[1][-1])
+        embed.add_field(name="Volume", value=self.volume[1][-1] if self.volume else "Unknown")
+        embed.add_field(name="Input (3 is Chromecast)", value=self.input[1][-1] if self.input else "Unknown")
 
         return {"embed": embed}
 
