@@ -42,6 +42,29 @@ class CustomHelp(commands.DefaultHelpCommand):
             self.paginator.add_line(entry)
         self.paginator.add_line()
 
+    def add_command_formatting(self, command):
+        """A utility function to format the non-indented block of commands and groups.
+
+        Parameters
+        ----------
+        command: :class:`Command`
+            The command to format.
+        """
+        if command.description:
+            self.paginator.add_line(command.description, empty=True)
+
+        signature = self.get_command_signature(command)
+        self.paginator.add_line(f"`{signature}`", empty=True)
+
+        if command.help:
+            try:
+                for line in command.help.splitlines():
+                    self.paginator.add_line(f"> {line}")
+            except RuntimeError:
+                for line in command.help.splitlines():
+                    self.paginator.add_line(line)
+                self.paginator.add_line()
+
 
 bot = commands.Bot(
     command_prefix=commands.when_mentioned_or(PREFIX),

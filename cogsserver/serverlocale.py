@@ -25,8 +25,10 @@ def get_time():
     return current_time
 
 
-def get_weather():
-    w_emoji, w_type, t_min, t_max = choice(weather)
+def get_weather(weather_type=None):
+    w_emoji, w_type, t_min, t_max = next(
+        (w for w in weather if weather_type and weather_type.lower() in w[1].lower()), choice(weather)
+    )
     return f"{w_emoji} {w_type}🌡 {choice(list(range(t_min, t_max)))}°C"
 
 
@@ -57,26 +59,37 @@ class Locale(commands.Cog):
         await self.bot.wait_until_ready()
 
     @tasks.loop(hours=12)
-    async def set_server_weather(self):
+    async def set_server_weather(self, weather_type=None):
         channel = self.bot.get_channel(958400248517132349)
+        update_thread = self.bot.get_channel(990459956379648040)
         # So we don't rate limit ourselves on reboots
         if not self.get_weather:
             self.get_weather = True
             return
-        new_weather = get_weather()
+        new_weather = get_weather(weather_type)
         await channel.edit(name=new_weather)
+        await update_thread.send(new_weather)
         return new_weather
 
     @set_server_weather.before_loop
     async def before_set_server_weather(self):
         await self.bot.wait_until_ready()
 
-    @commands.command()
+    @commands.command(
+        help=f"""Weather type from the following: 
+        {", ".join([f"`{i[1].lower()}`" for i in weather])}
+        
+        Not selecting a type, or selecting an invalid type, will cause it to roll randomly
+
+        Resets the 12 hour timer."""
+    )
     @checks.is_owner()
-    async def update_weather(self, ctx):
+    async def update_weather(self, ctx, weather_type=None):
         async with ctx.typing():
-            new_weather = await self.set_server_weather()
+            new_weather = await self.set_server_weather(weather_type)
         await ctx.send(f"Weather updated - {new_weather}")
+        self.get_weather = False
+        self.set_server_weather.restart()
 
     @commands.command(aliases=["timer", "timestamp"])
     async def time(self, ctx: commands.Context, *, time: str):
