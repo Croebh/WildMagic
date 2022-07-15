@@ -14,7 +14,7 @@ class Search(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(aliases=["transcript"])
+    @commands.command(aliases=["transcript", "search"])
     async def transcripts(self, ctx, search_type, user: disnake.Member):
         """
         Allows you to search through transcript logs by type.
@@ -44,25 +44,34 @@ class Search(commands.Cog):
         async with ctx.typing():
             transcripts = await self.get_transcripts(ttl_hash=get_ttl_hash())
 
+        embeds = []
         for search in search_type:
+
             out = []
             for transcript in transcripts[search]:
                 if transcript["member"] and user.id == transcript["member"].id:
                     out.append(transcript)
-                    if len(out) >= 25:
-                        break
             if not out:
-                await ctx.send(f"No results found in {search}.")
-                return
+                continue
 
-            embed = disnake.Embed(title=search, description=f"Results for <@{user.id}>")
-            for transcript in out:
-                embed.add_field(
-                    name=transcript["ticket"],
-                    value=f"{transcript['transcript']}\n[Transcript Message]({transcript['message']})",
+            pagination = [out[i : i + 25] for i in range(0, len(out), 25)]
+            for page in pagination:
+                embed = disnake.Embed(title=f"{search} - Ticket Search", description=f"Results for <@{user.id}>")
+                for transcript in page:
+                    embed.add_field(
+                        name=transcript["ticket"],
+                        value=f"<t:{transcript['date']}>\n[Transcript Message]({transcript['message']})",
+                    )
+                embed.set_footer(
+                    text="??transcript [type] [user] - Note: This only includes saved tickets, not open ones"
                 )
-            embed.set_footer(text="??transcript [user]")
-            await ctx.send(embed=embed)
+                embeds.append(embed)
+
+        if not embeds:
+            await ctx.send(f"No results found in {search_type} transcripts.")
+            return
+
+        await ctx.send(embeds=embeds)
 
     @commands.command(aliases=["application"])
     async def applications(self, ctx, user: disnake.Member):
@@ -93,7 +102,7 @@ class Search(commands.Cog):
 
         embed = disnake.Embed(title="Application Lookup", description=f"Results for <@{user.id}>")
         for application in out:
-            embed.description += f"\n[{application['type']}]({application['message']})"
+            embed.description += f"\n<t:{application['date']}>\n\n[{application['type']}]({application['message']})"
         embed.set_footer(text="??application [user]")
         await ctx.send(embed=embed)
 
@@ -111,7 +120,14 @@ class Search(commands.Cog):
                 embed = message.embeds[0]
                 author = embed.author
                 member = guild.get_member_named(author.name)
-                applications.append({"member": member, "message": message.jump_url, "type": embed.title})
+                applications.append(
+                    {
+                        "member": member,
+                        "message": message.jump_url,
+                        "type": embed.title,
+                        "date": int(message.created_at.timestamp()),
+                    }
+                )
 
         return applications
 
@@ -137,6 +153,7 @@ class Search(commands.Cog):
                         "message": message.jump_url,
                         "transcript": embed.fields[3].value,
                         "ticket": embed.fields[1].value,
+                        "date": int(message.created_at.timestamp()),
                     }
                 )
 
