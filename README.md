@@ -1,5 +1,5 @@
 # WildMagic Bot
-A Discord bot for use on the Waifus & Warriors Discord server.
+A Discord bot for use on the Maritime Monsters Discord server.
 
 ## Setting up the bot
 There are a few things that need to be set up before you can run/use this bot:
