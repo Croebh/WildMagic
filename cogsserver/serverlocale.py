@@ -1,3 +1,4 @@
+import re
 from random import choice
 
 from disnake.ext import tasks, commands
@@ -94,6 +95,17 @@ class Locale(commands.Cog):
         await ctx.send(f"Weather updated - {new_weather}")
         self.get_weather = False
         self.set_server_weather.restart()
+
+    @commands.command()
+    async def convert(self, ctx):
+        """Converts the current weather into celsius for the silly Americans"""
+        channel = self.bot.get_channel(958400248517132349)
+        current_weather = channel.name
+
+        regex = r".+🌡 (.+)°C"
+        celsius = re.match(regex, current_weather).group(1)
+        fahrenheit = int((int(celsius) * (9 / 5)) + 32)
+        await ctx.send(f"Current Weather: {current_weather.replace(celsius, str(fahrenheit))[:-1]}F")
 
     @commands.command(aliases=["timer", "timestamp"])
     async def time(self, ctx: commands.Context, *, time: str):
