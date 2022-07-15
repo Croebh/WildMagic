@@ -9,20 +9,17 @@ from utils import checks
 
 weather = [
     # Emoji, Type, Min, Max
-    ("☀️", "Clear", 20, 30),
+    ("☀", "Clear", 20, 30),
     ("⛅", "Overcast", 15, 23),
-    ("☁️", "Foggy", 9, 16),
-    ("🌧️", "Rain", 3, 15),
-    ("⛈️", "Storms", -5, 12),
-    ("🌨️", "Snow", -25, -5),
+    ("☁", "Foggy", 9, 16),
+    ("🌧", "Rain", 3, 15),
+    ("⛈", "Storms", -5, 12),
+    ("🌨", "Snow", -20, -5),
+    ("⏳", "Sandstorm", 25, 30),
+    ("🔥", "Heatwave", 30, 45),
+    ("💨", "High Winds", 18, 24),
+    ("🧊", "Blizzard", -40, -15),
 ]
-
-
-def get_time():
-    tz = timezone("US/Eastern")
-    now = datetime.now(tz)
-    current_time = now.strftime("%I:00 %p").strip("0")
-    return current_time
 
 
 def get_weather(weather_type=None):
@@ -30,6 +27,13 @@ def get_weather(weather_type=None):
         (w for w in weather if weather_type and weather_type.lower() in w[1].lower()), choice(weather)
     )
     return f"{w_emoji} {w_type}🌡 {choice(list(range(t_min, t_max)))}°C"
+
+
+def get_time():
+    tz = timezone("US/Eastern")
+    now = datetime.now(tz)
+    current_time = now.strftime("%I:00 %p").strip("0")
+    return current_time
 
 
 class Locale(commands.Cog):
@@ -58,7 +62,7 @@ class Locale(commands.Cog):
     async def before_set_server_time(self):
         await self.bot.wait_until_ready()
 
-    @tasks.loop(hours=12)
+    @tasks.loop(hours=6)
     async def set_server_weather(self, weather_type=None):
         channel = self.bot.get_channel(958400248517132349)
         update_thread = self.bot.get_channel(990459956379648040)
@@ -81,7 +85,7 @@ class Locale(commands.Cog):
         
         Not selecting a type, or selecting an invalid type, will cause it to roll randomly
 
-        Resets the 12 hour timer."""
+        Resets the 6 hour timer."""
     )
     @checks.is_owner()
     async def update_weather(self, ctx, weather_type=None):
