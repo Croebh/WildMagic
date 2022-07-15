@@ -6,6 +6,8 @@ import requests
 
 from disnake.ext import commands
 
+import utils.config
+
 
 class CharInfo(commands.Cog):
     def __init__(self, bot):
@@ -97,8 +99,20 @@ class CharInfo(commands.Cog):
             await ctx.send("Unable to find a valid DDB character link.")
             return
 
+        headers = {
+            "accept": "application/json",
+            "accept-language": "en-CA,en-VI;q=0.9,en-US;q=0.8,en;q=0.7",
+            "authorization": utils.config.BEARER_TOKEN,
+            "sec-ch-ua": '" Not A;Brand";v="99", "Chromium";v="102", "Google Chrome";v="102"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-site",
+        }
+
         sheet_url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
-        resp = requests.get(sheet_url)
+        resp = requests.get(sheet_url, headers=headers)
         json_data = json.loads(resp.content)["data"]
         return json_data
 
