@@ -1,5 +1,5 @@
 import re
-from random import choice
+from random import choice, choices
 
 from disnake.ext import tasks, commands
 from datetime import datetime
@@ -9,24 +9,24 @@ from pytz import timezone
 from utils import checks
 
 weather = [
-    # Emoji, Type, Min, Max
-    ("☀", "Clear", 20, 30),
-    ("⛅", "Overcast", 15, 23),
-    ("☁", "Foggy", 9, 16),
-    ("🌧", "Rain", 3, 15),
-    ("⛈", "Storms", -5, 12),
-    ("🌨", "Snow", -20, -5),
-    ("⏳", "Sandstorm", 25, 30),
-    ("🔥", "Heatwave", 30, 45),
-    ("💨", "High Winds", 18, 24),
-    ("🧊", "Blizzard", -40, -15),
+    {"emoji": "☀", "desc": "Clear", "temp_min": 20, "temp_max": 30, "weight": 30},
+    {"emoji": "⛅", "desc": "Overcast", "temp_min": 15, "temp_max": 23, "weight": 15},
+    {"emoji": "⛈", "desc": "Storms", "temp_min": -5, "temp_max": 12, "weight": 10},
+    {"emoji": "☁", "desc": "Foggy", "temp_min": 9, "temp_max": 16, "weight": 10},
+    {"emoji": "🌧", "desc": "Rain", "temp_min": 3, "temp_max": 15, "weight": 10},
+    {"emoji": "🌨", "desc": "Snow", "temp_min": -20, "temp_max": -5, "weight": 10},
+    {"emoji": "💨", "desc": "High Winds", "temp_min": 18, "temp_max": 24, "weight": 5},
+    {"emoji": "🧊", "desc": "Blizzard", "temp_min": -40, "temp_max": -15, "weight": 2},
+    {"emoji": "🔥", "desc": "Heatwave", "temp_min": 30, "temp_max": 45, "weight": 2},
+    {"emoji": "⏳", "desc": "Sandstorm", "temp_min": 25, "temp_max": 30, "weight": 2},
 ]
 
 
 def get_weather(weather_type=None):
-    w_emoji, w_type, t_min, t_max = next(
-        (w for w in weather if weather_type and weather_type.lower() in w[1].lower()), choice(weather)
-    )
+    w_emoji, w_type, t_min, t_max, _ = next(
+        (w for w in weather if weather_type and weather_type.lower() in w["desc"].lower()),
+        choices(weather, weights=[w["weight"] for w in weather]),
+    )[0].values()
     return f"{w_emoji} {w_type}🌡 {choice(list(range(t_min, t_max)))}°C"
 
 
@@ -82,7 +82,7 @@ class Locale(commands.Cog):
 
     @commands.command(
         help=f"""Weather type from the following: 
-        {", ".join([f"`{i[1].lower()}`" for i in weather])}
+        {", ".join([f"`{i['desc'].lower()}`" for i in weather])}
         
         Not selecting a type, or selecting an invalid type, will cause it to roll randomly
 

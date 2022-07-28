@@ -158,7 +158,7 @@ class CharInfo(commands.Cog):
 
         appearance = "\n".join([f"> {line}" for line in out["appearance"].strip().splitlines()])
         desc_out = f"""!desc update __**{out['height']} | {out['weight']} | {out['race']} | {out['class']}**__
-                       {appearance}
+                       ###APPEARANCEHERE###
                        **Personality Traits**
                        {out["traits"].strip()}
                        **Ideals**
@@ -169,6 +169,9 @@ class CharInfo(commands.Cog):
                        {out["flaws"].strip()}
                        **Alignment**
                        {out["alignment"].strip()}"""
+        if (len(desc_out) - 20) + len(appearance) >= 2000:
+            appearance = appearance[: 2000 - (len(desc_out) + 20)] + "..."
+        desc_out = desc_out.replace("###APPEARANCEHERE###", appearance)
         return "\n".join([line.strip() for line in desc_out.splitlines()]), issues
 
     async def _get_tools(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> Optional[str]:

@@ -131,6 +131,17 @@ async def check_account_age(message):
             await message.add_reaction("\N{baby}")
 
 
+@bot.listen("on_raw_reaction_add")
+async def planeshit(event):
+    if event.emoji.id == 947259269592530984 and event.user_id == 164249546073964544:
+        msg_id = event.message_id
+        channel = bot.get_channel(event.channel_id)
+        message = await channel.fetch_message(msg_id)
+
+        for reaction in "🇵🇱🇦🇳🇪🇸🇭🇮🇹":
+            await message.add_reaction(reaction)
+
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
