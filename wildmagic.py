@@ -15,7 +15,13 @@ from disnake.ext import tasks, commands
 from disnake.ext.commands import CommandInvokeError, CommandNotFound, MissingRequiredArgument
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ("cogsmisc.repl", "cogsddb.charinfo", "cogshome.tv", "cogsserver.search", "cogsserver.serverlocale")
+COGS = (
+    "cogsmisc.repl",
+    "cogsddb.charinfo",
+    # "cogshome.tv",
+    # "cogsserver.search",
+    # "cogsserver.serverlocale"
+)
 
 PREFIX = "??"
 NEWLINE = "\n"
