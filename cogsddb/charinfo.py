@@ -34,14 +34,14 @@ class CharInfo(commands.Cog):
         # If their description is long enough to make this over the limit, send it seperately
         if len("\n".join(out)) >= 1900:
             await ctx.send(
-                "**__Copy and paste the following commands into this channel:__**\n```py\n"
+                "**__Copy and paste the following commands into this channel:__**\n```md\n"
                 + ((out[0][:1900] + "...") if len(out[0]) >= 1900 else out[0])
                 + "\n```"
             )
             await ctx.send("```py\n!multiline\n" + "\n".join(out[1:]) + "\n```")
         else:
             await ctx.send(
-                "**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n"
+                "**__Copy and paste the following command into this channel:__**\n```md\n!multiline\n"
                 + "\n".join(out)
                 + "\n```"
             )
@@ -53,7 +53,7 @@ class CharInfo(commands.Cog):
         """Generates a command to set up your characters description, given a provided DDB character sheet."""
         out, issues = await self._get_desc(ctx, sheet_url)
         out = (out[:1900] + "...") if len(out) >= 1900 else out
-        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```md\n{out}\n```")
         if issues:
             await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
@@ -61,7 +61,7 @@ class CharInfo(commands.Cog):
     async def get_languages(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters languages, given a provided DDB character sheet."""
         out = await self._get_languages(ctx, sheet_url)
-        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```md\n{out}\n```")
 
     @commands.command()
     async def get_feats(self, ctx: commands.Context, sheet_url: str):
@@ -70,7 +70,7 @@ class CharInfo(commands.Cog):
         if not out:
             await ctx.send("No feats found.")
             return
-        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```md\n{out}\n```")
 
     @commands.command()
     async def get_tools(self, ctx: commands.Context, sheet_url: str):
@@ -80,14 +80,14 @@ class CharInfo(commands.Cog):
         if not out:
             await ctx.send("No tool proficiencies found.")
             return
-        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
+        await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```md\n{out}\n```")
 
     @commands.command()
     async def get_bags(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up the `!bag` alias, given a provided DDB character sheet."""
         out = await self._get_bags(ctx, sheet_url)
         await ctx.send(
-            f"**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n{out}\n```"
+            f"**__Copy and paste the following command into this channel:__**\n```md\n!multiline\n{out}\n```"
         )
 
     @staticmethod
@@ -151,7 +151,7 @@ class CharInfo(commands.Cog):
         if out["weight"] == "weight":
             issues.append("Weight not set")
         if out["appearance"] == "Write a bit about attitude, appearance, and background here.":
-            issues.append("Description (Appearance on DDB) not set")
+            issues.append("Description (Appearance or Backstory on DDB) not set")
         for trait in ("traits", "ideals", "bonds", "flaws"):
             if "Enter your D&D Beyond rolled trait(s) here" in out[trait]:
                 issues.append(f"{trait.title()} not set")

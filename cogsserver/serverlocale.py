@@ -1,6 +1,7 @@
 import re
 from random import choice, choices
 
+import disnake
 from disnake.ext import tasks, commands
 from datetime import datetime
 from dateparser import parse as timeparse
@@ -114,6 +115,40 @@ class Locale(commands.Cog):
         if time:
             timestamp = int(time.timestamp())
             await ctx.send(f"""<t:{timestamp}> `<t:{timestamp}>`\n<t:{timestamp}:R> `<t:{timestamp}:R>`""")
+
+    @commands.command()
+    async def classes(self, ctx):
+        """Returns the number of each class on the server, based on the reaction roles."""
+
+        classes = {
+            "Artificer": 908398977932754965,
+            "Barbarian": 908400684674723902,
+            "Bard": 908400536099909743,
+            "Blood Hunter": 908401227753201685,
+            "Cleric": 908400133065048185,
+            "Druid": 908401416878575647,
+            "Fighter": 908408936204501025,
+            "Paladin": 908406587281014814,
+            "Monk": 908406867301105735,
+            "Ranger": 908407433108533268,
+            "Sorcerer": 908405286912524348,
+            "Rogue": 908408702934061066,
+            "Warlock": 908409608949870633,
+            "Wizard": 908409328967491685,
+        }
+        out = []
+        for cls, role_id in classes.items():
+            current = ctx.guild.get_role(role_id)
+            out.append(f"{cls:<12} - {len(current.members)}")
+        embed = disnake.Embed(
+            title="Server Classes",
+            description="```\n" + "\n".join(sorted(out, key=lambda x: int(x.split(" - ")[1]), reverse=True)) + "\n```",
+        )
+        embed.add_field(
+            name="Note",
+            value="This is based on reaction roles, and as such is not representative of multi-classed characters.",
+        )
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
