@@ -1,21 +1,14 @@
-import asyncio
-import logging
 import os
 import sys
-import traceback
-from datetime import datetime, timedelta, timezone
-
-from aiohttp import ClientResponseError, ClientOSError
-from disnake import Forbidden, HTTPException, NotFound, InvalidArgument
 
 from utils import checks, config
 
 import disnake
-from disnake.ext import tasks, commands
+from disnake.ext import commands
 from disnake.ext.commands import CommandInvokeError, CommandNotFound, MissingRequiredArgument
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ("cogsmisc.repl", "cogsddb.charinfo", "cogshome.tv", "cogsserver.search", "cogsserver.serverlocale")
+COGS = ("cogsmisc.repl", "cogsddb.charinfo", "cogsmisc.random")
 
 PREFIX = "??"
 NEWLINE = "\n"
@@ -68,7 +61,6 @@ class CustomHelp(commands.DefaultHelpCommand):
 
 bot = commands.Bot(
     command_prefix=commands.when_mentioned_or(PREFIX),
-    pm_help=False,
     case_insensitive=True,
     intents=intents,
     owner_id=config.OWNER_ID,
@@ -78,7 +70,8 @@ bot = commands.Bot(
         paginator=commands.Paginator(prefix=None, suffix=None),
         no_category="Uncategorized",
     ),
-    test_guilds=[558408317957832726],
+    # test_guilds=[558408317957832726],
+    command_sync_flags=commands.CommandSyncFlags.all()
 )
 
 
@@ -107,83 +100,6 @@ async def restart(ctx):
     await ctx.send("Restarting...")
     print("Restarting...")
     os.execv(sys.executable, ["python"] + sys.argv)
-
-
-log_formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
-handler = logging.StreamHandler(sys.stdout)
-handler.setFormatter(log_formatter)
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
-log = logging.getLogger("bot")
-
-
-@bot.listen("on_message")
-async def check_account_age(message):
-    if message.channel.id == 914453395472023612 and message.embeds:
-        embed = message.embeds[0]
-        author = embed.author
-        member = message.channel.guild.get_member_named(author.name)
-        age = member.created_at
-
-        if age > datetime.now(tz=timezone.utc) - timedelta(days=180):
-            await asyncio.sleep(10)
-            await message.add_reaction("\N{baby}")
-
-
-@bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        return
-
-    elif isinstance(error, (commands.UserInputError, commands.NoPrivateMessage, ValueError)):
-        return await ctx.send(
-            f"Error: {str(error)}\nUse `{ctx.prefix}help " + ctx.command.qualified_name + "` for help."
-        )
-
-    elif isinstance(error, commands.CheckFailure):
-        msg = str(error) or "You are not allowed to run this command."
-        return await ctx.send(f"Error: {msg}")
-
-    elif isinstance(error, commands.CommandOnCooldown):
-        return await ctx.send("This command is on cooldown for {:.1f} seconds.".format(error.retry_after))
-
-    elif isinstance(error, commands.MaxConcurrencyReached):
-        return await ctx.send(str(error))
-
-    elif isinstance(error, CommandInvokeError):
-        original = error.original
-
-        if isinstance(original, Forbidden):
-            try:
-                return await ctx.author.send(
-                    "Error: I am missing permissions to run this command. "
-                    f"Please make sure I have permission to send messages to <#{ctx.channel.id}>."
-                )
-            except HTTPException:
-                try:
-                    return await ctx.send(f"Error: I cannot send messages to this user.")
-                except HTTPException:
-                    return
-
-        elif isinstance(original, NotFound):
-            return await ctx.send("Error: I tried to edit or delete a message that no longer exists.")
-
-        elif isinstance(original, (ClientResponseError, InvalidArgument, asyncio.TimeoutError, ClientOSError)):
-            return await ctx.send("Error in Discord API. Please try again.")
-
-        elif isinstance(original, HTTPException):
-            if original.response.status == 400:
-                return await ctx.send(f"Error: Message is too long, malformed, or empty.\n{original.text}")
-            elif 499 < original.response.status < 600:
-                return await ctx.send("Error: Internal server error on Discord's end. Please try again.")
-
-    await ctx.send(f"Error: {str(error)}\nUh oh, that wasn't supposed to happen! ")
-
-    log.warning("Error caused by message: `{}`".format(ctx.message.content))
-    for line in traceback.format_exception(type(error), error, error.__traceback__):
-        log.warning(line)
-
 
 for cog in COGS:
     bot.load_extension(cog)

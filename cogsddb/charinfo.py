@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Optional, Tuple, List
+from typing import Optional
 
 import requests
 
@@ -13,17 +13,20 @@ class CharInfo(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    async def new_char(self, ctx: commands.Context, sheet_url: str):
-        """Generates a multiline command that assist with creating new characters,
-        given a provided DDB character sheet."""
+    @commands.slash_command(extras={"integration_types": [0, 1], "contexts": [0, 1, 2]})
+    async def new_char(self, ctx, sheet_url: str):
+        """Generates a multiline command that assist with creating new characters.
+
+        Parameters
+        ----------
+        sheet_url: The DDB character sheet URL to use"""
         data = await self.get_character_data(ctx, sheet_url)
-        desc, issues = await self._get_desc(ctx, sheet_url, data)
+        # desc, issues = await self._get_desc(ctx, sheet_url, data)
         out = [
             i
             for i in [
-                desc,
-                await self._get_bags(ctx, sheet_url, data),
+                # desc,
+                # await self._get_bags(ctx, sheet_url, data),
                 await self._get_tools(ctx, sheet_url, data),
                 await self._get_languages(ctx, sheet_url, data),
                 await self._get_feats(ctx, sheet_url, data),
@@ -31,24 +34,24 @@ class CharInfo(commands.Cog):
             if i
         ]
 
-        # If their description is long enough to make this over the limit, send it seperately
+        # If their description is long enough to make this over the limit, send it separately
         if len("\n".join(out)) >= 1900:
             await ctx.send(
                 "**__Copy and paste the following commands into this channel:__**\n```py\n"
                 + ((out[0][:1900] + "...") if len(out[0]) >= 1900 else out[0])
                 + "\n```"
             )
-            await ctx.send("```py\n!multiline\n" + "\n".join(out[1:]) + "\n```")
+            await ctx.send("```py\n!multiline\n" + "\n".join(out[1:]) + "\n```", ephemeral=True)
         else:
             await ctx.send(
                 "**__Copy and paste the following command into this channel:__**\n```py\n!multiline\n"
                 + "\n".join(out)
-                + "\n```"
+                + "\n```", ephemeral=True
             )
-        if issues:
-            await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
+        # if issues:
+        #     await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}", ephemeral=True)
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def get_desc(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters description, given a provided DDB character sheet."""
         out, issues = await self._get_desc(ctx, sheet_url)
@@ -57,13 +60,13 @@ class CharInfo(commands.Cog):
         if issues:
             await ctx.send(f"**__Issues found:__**\n{', '.join(issues)}")
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def get_languages(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters languages, given a provided DDB character sheet."""
         out = await self._get_languages(ctx, sheet_url)
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def get_feats(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your characters feats, given a provided DDB character sheet."""
         out = await self._get_feats(ctx, sheet_url)
@@ -72,7 +75,7 @@ class CharInfo(commands.Cog):
             return
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def get_tools(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up your tool proficiencies for `!tool`, given a provided DDB character sheet."""
 
@@ -82,7 +85,7 @@ class CharInfo(commands.Cog):
             return
         await ctx.send(f"**__Copy and paste the following command into this channel:__**\n```py\n{out}\n```")
 
-    @commands.command()
+    @commands.command(enabled=False)
     async def get_bags(self, ctx: commands.Context, sheet_url: str):
         """Generates a command to set up the `!bag` alias, given a provided DDB character sheet."""
         out = await self._get_bags(ctx, sheet_url)
@@ -111,7 +114,7 @@ class CharInfo(commands.Cog):
             "sec-fetch-site": "same-site",
         }
 
-        sheet_url = f"https://character-service.dndbeyond.com/character/v3/character/{match.group(1)}"
+        sheet_url = f"https://character-service.dndbeyond.com/character/v5/character/{match.group(1)}"
         resp = requests.get(sheet_url, headers=headers)
         json_data = json.loads(resp.content)["data"]
         return json_data
@@ -158,7 +161,7 @@ class CharInfo(commands.Cog):
 
         appearance = "\n".join([f"> {line}" for line in out["appearance"].strip().splitlines()])
         desc_out = f"""!desc update __**{out['height']} | {out['weight']} | {out['race']} | {out['class']}**__
-                       {appearance}
+                       ###APPEARANCEHERE###
                        **Personality Traits**
                        {out["traits"].strip()}
                        **Ideals**
@@ -169,6 +172,9 @@ class CharInfo(commands.Cog):
                        {out["flaws"].strip()}
                        **Alignment**
                        {out["alignment"].strip()}"""
+        if (len(desc_out) - 20) + len(appearance) >= 2000:
+            appearance = appearance[:2000-(len(desc_out)+20)] + "..."
+        desc_out = desc_out.replace("###APPEARANCEHERE###", appearance)
         return "\n".join([line.strip() for line in desc_out.splitlines()]), issues
 
     async def _get_tools(self, ctx: commands.Context, sheet_url: str, data: dict = None) -> Optional[str]:
