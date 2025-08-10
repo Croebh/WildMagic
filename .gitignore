@@ -137,3 +137,9 @@ service_account.json
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/vcs.xml
 /.idea/WildMagic-bot.iml
+
+/jsons/
+*.json
+/data/
+/old/
+/.idea/

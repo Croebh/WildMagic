@@ -4,7 +4,7 @@ import re
 from disnake.ext.commands import BadArgument, ExpectedClosingQuoteError
 from disnake.ext.commands.view import StringView
 
-from cogsmisc.errors import InvalidArgument
+from errors import InvalidArgument
 
 
 def list_get(index, default, l):
@@ -53,6 +53,7 @@ def argparse(args, splitter=argsplit):
     Parses arguments.
     :param args: A list of arguments to parse.
     :type args: str or Iterable
+    :type splitter: A callable function that is used to split the args
     :return: The parsed arguments.
     :rtype: :class:`~utils.argparser.ParsedArguments`
     """
@@ -115,7 +116,9 @@ class ParsedArguments:
         try:
             return [type_(v) for v in parsed]
         except (ValueError, TypeError):
-            raise InvalidArgument(f"One or more arguments cannot be cast to {type_.__name__} (in `{arg}`)")
+            raise InvalidArgument(
+                f"One or more arguments cannot be cast to {type_.__name__} (in `{arg}`)"
+            )
 
     def last(self, arg, default=None, type_: type = str):
         """
@@ -132,7 +135,9 @@ class ParsedArguments:
         try:
             return type_(last_arg)
         except (ValueError, TypeError):
-            raise InvalidArgument(f"{last_arg} cannot be cast to {type_.__name__} (in `{arg}`)")
+            raise InvalidArgument(
+                f"{last_arg} cannot be cast to {type_.__name__} (in `{arg}`)"
+            )
 
     def join(self, arg, connector: str, default=None):
         """
@@ -286,7 +291,9 @@ class CustomStringView(StringView):
                 continue
 
             # opening quote
-            if not is_quoted and current in ALL_QUOTES and current != "'":  # special case: apostrophes in mid-string
+            if (
+                not is_quoted and current in ALL_QUOTES and current != "'"
+            ):  # special case: apostrophes in mid-string
                 close_quote = QUOTE_PAIRS.get(current)
                 is_quoted = True
                 _escaped_quotes = (current, close_quote)

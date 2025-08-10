@@ -1,7 +1,7 @@
 import disnake.utils
 from disnake.ext import commands
 
-from utils import config
+from utils import constants
 
 
 # The permission system of the bot is based on a "just works" basis
@@ -16,7 +16,7 @@ from utils import config
 
 # ===== predicates =====
 def author_is_owner(ctx):
-    return ctx.author.id == config.OWNER_ID
+    return ctx.author.id == constants.OWNER_ID
 
 
 def _check_permissions(ctx, perms):

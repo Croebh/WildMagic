@@ -1,14 +1,34 @@
 import os
 import sys
+import logging
+import traceback
 
-from utils import checks, config
+import aiohttp
+
+import db
+import errors
+from utils import checks, constants
+
 
 import disnake
 from disnake.ext import commands
-from disnake.ext.commands import CommandInvokeError, CommandNotFound, MissingRequiredArgument
+from disnake.ext.commands import (
+    CommandInvokeError,
+    CommandNotFound,
+    MissingRequiredArgument,
+)
 from disnake.ext.commands import MissingAnyRole
 
-COGS = ("cogsmisc.repl", "cogsddb.charinfo", "cogsmisc.random")
+from utils.ddbclient import DDBClient
+
+logging.basicConfig(level=logging.INFO)
+
+COGS = (
+    "cogs.misc.repl",
+    "cogs.characters.charinfo",
+    "cogs.misc.random",
+    "cogs.misc.nlp",
+)
 
 PREFIX = "??"
 NEWLINE = "\n"
@@ -59,19 +79,23 @@ class CustomHelp(commands.DefaultHelpCommand):
                 self.paginator.add_line()
 
 
-bot = commands.Bot(
+class WildmagicBot(commands.Bot):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ddb_client = None
+
+
+bot = WildmagicBot(
     command_prefix=commands.when_mentioned_or(PREFIX),
     case_insensitive=True,
     intents=intents,
-    owner_id=config.OWNER_ID,
+    owner_id=constants.OWNER_ID,
     help_command=CustomHelp(
         sort_commands=False,
         width=1000,
         paginator=commands.Paginator(prefix=None, suffix=None),
         no_category="Uncategorized",
     ),
-    # test_guilds=[558408317957832726],
-    command_sync_flags=commands.CommandSyncFlags.all()
 )
 
 
@@ -79,13 +103,48 @@ bot = commands.Bot(
 async def on_command_error(ctx, error):
     error_msg = "You done goofed?"
     if isinstance(error, CommandNotFound):
-        error_msg = f"Command not found. View `{PREFIX}help` for valid commands."
+        return
     elif isinstance(error, (CommandInvokeError, MissingRequiredArgument)):
-        error_msg = f"Incorrect invocation. Please re-examine the command in `{PREFIX}help`."
+        error_msg = (
+            f"Incorrect invocation. Please re-examine the command in `{PREFIX}help`."
+        )
     elif isinstance(error, MissingAnyRole):
         error_msg = "You don't have any of the roles required to run this command."
     await ctx.message.channel.send(f"Error: {error_msg} ({error})")
     return
+
+
+@bot.event
+async def on_slash_command_error(inter, error):
+    if isinstance(error, commands.CommandInvokeError):
+        error = error.original
+
+    await inter.send(f"Error: {error!s}", ephemeral=True)
+
+    if not isinstance(error, errors.WildException):
+        traceback.print_exception(error)
+
+
+@bot.event
+async def on_message_command_error(inter, error):
+    if isinstance(error, commands.CommandInvokeError):
+        error = error.original
+
+    await inter.send(f"Error: {error!s}", ephemeral=True)
+
+    if not isinstance(error, errors.WildException):
+        traceback.print_exception(error)
+
+
+@bot.event
+async def on_user_command_error(inter, error):
+    if isinstance(error, commands.CommandInvokeError):
+        error = error.original
+
+    await inter.send(f"Error: {error!s}", ephemeral=True)
+
+    if not isinstance(error, errors.WildException):
+        traceback.print_exception(error)
 
 
 @bot.event
@@ -101,8 +160,10 @@ async def restart(ctx):
     print("Restarting...")
     os.execv(sys.executable, ["python"] + sys.argv)
 
-for cog in COGS:
-    bot.load_extension(cog)
 
 if __name__ == "__main__":
-    bot.run(config.TOKEN)
+    for cog in COGS:
+        bot.load_extension(cog)
+    bot.loop.create_task(db.init_db())
+    bot.ddb_client = DDBClient(aiohttp.ClientSession(loop=bot.loop), constants.BEARER_TOKEN)
+    bot.run(constants.TOKEN)

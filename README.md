@@ -40,10 +40,10 @@ You'll also need to have a valid Discord bot token.
 In order for the bot to recognize you as the owner, you'll need to add your Discord user ID to the ``utils\config.py`` file.
 
 1. In Discord, enable Developer Mode
-  1. [Try This Link](discord://-/settings/advanced)
-  2. If that doesn't work, go into your user settings, then, under App Settings, click Advanced
-2. Right click your profile picture and select Copy ID
+   1. [Try This Link](discord://-/settings/advanced)
+   2. If that doesn't work, go into your user settings, then, under App Settings, click Advanced
+2. Right-click your profile picture and select Copy ID
 3. In ``utils\config.py``, replace the existing number after ``OWNERID=`` with your own ID
 
 ## Running the bot
-Simply run ``start.bat`` and it will start up. You can use the ``!!restart`` comman
+Simply run ``start.bat`` and it will start up. You can use the ``!!restart`` command
