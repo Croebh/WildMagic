@@ -93,7 +93,7 @@ class NLPCommands(commands.Cog):
         await inter.response.defer()
 
         gc = gspread.service_account()
-        sh = gc.open_by_key(MAGIC_ITEM_SHEET_ID)
+        sh = gc.open_by_key("170QfzpDrxE9vHDtjzvb1GmZ1L-dCXnm7qlZS9Vx7hdE")
 
         errors = []
 

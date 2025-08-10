@@ -143,3 +143,4 @@ service_account.json
 /data/
 /old/
 /.idea/
+/docker/

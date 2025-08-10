@@ -14,7 +14,7 @@ class AvraeClient(BaseClient):
     async def request(self, method: str, route: str, headers=None, **kwargs):
         if headers is None:
             headers = {}
-        headers["Authorization"] = self.api_key
+        headers["Authorization"] = "Bearer " + self.api_key
         return await super().request(method, route, headers=headers, **kwargs)
 
     async def get_gvar(self, gvar_id: str) -> Gvar:

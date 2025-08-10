@@ -1,0 +1,8 @@
+services:
+  bot:
+    image: wildmagic
+    build:
+      context: .
+    env_file:
+      - ./docker/env
+    restart: unless-stopped
